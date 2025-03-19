@@ -4,6 +4,7 @@ import {
   ceil,
   cliExecute,
   Effect,
+  Element,
   haveEffect,
   myBuffedstat,
   numericModifier,
@@ -12,72 +13,51 @@ import {
   toFloat,
   visitUrl,
 } from "kolmafia";
-import { $effect, $item, $location, $skill, $stat, getRemainingLiver } from "libram";
+import { $effect, $element, $item, $location, $skill, $stat, getRemainingLiver } from "libram";
 
 import { ForkoStrategy, Macro } from "../combat";
 import { extractInt, getImage, memoizeTurncount, turboMode } from "../lib";
 
-enum PartType {
-  HOT,
-  COLD,
-  STENCH,
-  SLEAZE,
-  SPOOKY,
-  PHYSICAL,
-}
-
-class MonsterPart {
-  type: PartType;
+type MonsterPart = {
+  type: Element;
   name: string;
   regex: RegExp;
   intrinsic: Effect;
+};
 
-  constructor(type: PartType, name: string, regex: RegExp, intrinsic: Effect) {
-    this.type = type;
-    this.name = name;
-    this.regex = regex;
-    this.intrinsic = intrinsic;
-  }
-}
-
-const allParts = new Map<PartType, MonsterPart>([
-  [
-    PartType.HOT,
-    new MonsterPart(
-      PartType.HOT,
-      "hot",
-      /pairs? of charred hobo boots/,
-      $effect`Spirit of Cayenne`,
-    ),
-  ],
-  [
-    PartType.COLD,
-    new MonsterPart(
-      PartType.COLD,
-      "cold",
-      /pairs? of frozen hobo eyes/,
-      $effect`Spirit of Peppermint`,
-    ),
-  ],
-  [
-    PartType.STENCH,
-    new MonsterPart(
-      PartType.STENCH,
-      "stench",
-      /piles? of stinking hobo guts/,
-      $effect`Spirit of Garlic`,
-    ),
-  ],
-  [
-    PartType.SLEAZE,
-    new MonsterPart(PartType.SLEAZE, "sleaze", /hobo crotch/, $effect`Spirit of Bacon Grease`),
-  ],
-  [
-    PartType.SPOOKY,
-    new MonsterPart(PartType.SPOOKY, "spooky", /creepy hobo skull/, $effect`Spirit of Wormwood`),
-  ],
-  [PartType.PHYSICAL, new MonsterPart(PartType.PHYSICAL, "physical", /hobo skin/, $effect`none`)],
-]);
+const monsterParts: MonsterPart[] = [
+  {
+    type: $element`hot`,
+    name: "hot",
+    regex: /pairs? of charred hobo boots/,
+    intrinsic: $effect`Spirit of Cayenne`,
+  },
+  {
+    type: $element`cold`,
+    name: "cold",
+    regex: /pairs? of frozen hobo eyes/,
+    intrinsic: $effect`Spirit of Peppermint`,
+  },
+  {
+    type: $element`stench`,
+    name: "stench",
+    regex: /piles? of stinking hobo guts/,
+    intrinsic: $effect`Spirit of Garlic`,
+  },
+  {
+    type: $element`sleaze`,
+    name: "sleaze",
+    regex: /hobo crotch/,
+    intrinsic: $effect`Spirit of Bacon Grease`,
+  },
+  {
+    type: $element`spooky`,
+    name: "spooky",
+    regex: /creepy hobo skull/,
+    intrinsic: $effect`Spirit of Wormwood`,
+  },
+  { type: $element`none`, name: "physical", regex: /hobo skin/, intrinsic: $effect`none` },
+];
 
 class PartPlan {
   type: MonsterPart;
@@ -91,7 +71,7 @@ class PartPlan {
 const currentParts = memoizeTurncount(() => {
   const result = new Map<MonsterPart, number>();
   const text = visitUrl("clan_hobopolis.php?place=3&action=talkrichard&whichtalk=3");
-  for (const part of allParts.values()) {
+  for (const part of monsterParts.values()) {
     const partRe = new RegExp(`<b>(a|[0-9]+)</b> ${part.regex.source}`, "g");
     result.set(part, extractInt(partRe, text));
   }
@@ -138,18 +118,14 @@ function buildPlan() {
   for (const partPlan of plan) {
     print(`PLAN: For part ${partPlan.type.name}, get ${partPlan.count} more parts.`);
   }
-  plan.sort((x, y) => x.type.type - y.type.type);
-  for (const partPlan of plan) {
-    print(`PLAN: For part ${partPlan.type.name}, get ${partPlan.count} more parts.`);
-  }
 }
 
 function overkillMacro(part: MonsterPart) {
   switch (part.type) {
-    case PartType.COLD:
-    case PartType.STENCH:
-    case PartType.SPOOKY:
-    case PartType.SLEAZE: {
+    case $element`cold`:
+    case $element`stench`:
+    case $element`spooky`:
+    case $element`sleaze`: {
       const predictedDamage =
         (32 + 0.5 * myBuffedstat($stat`Mysticality`)) *
         (1 + numericModifier("spell damage percent") / 100);
@@ -165,12 +141,12 @@ function overkillMacro(part: MonsterPart) {
         .externalIf(!turboMode(), Macro.skill($skill`Cannelloni Cannon`).repeat())
         .item($item`seal tooth`);
     }
-    case PartType.HOT: {
+    case $element`hot`: {
       return Macro.stasis()
         .skill($skill`Saucegeyser`)
         .repeat();
     }
-    case PartType.PHYSICAL: {
+    case $element`none`: {
       return Macro.stasis()
         .skill($skill`Lunging Thrust-Smack`)
         .repeat();
@@ -197,7 +173,7 @@ export const TownSquare: Quest<Task> = {
         visitUrl("clan_hobopolis.php?preaction=simulacrum&place=3&qty=1&makeall=1");
       },
     },
-    ...[...allParts.keys()].map((partType) => ({
+    ...[...monsterParts.values()].map((monsterPart) => ({
       name: "Acquire cold parts",
       choices: {
         230: 0, // Show binder adventure in browser.
@@ -205,11 +181,11 @@ export const TownSquare: Quest<Task> = {
         272: 2, // Skip marketplace.
         225: 3, // Skip tent.
       },
-      ready: () => (plan.find((p) => p.type.type === partType)?.count ?? 0) > 0,
+      ready: () => (plan.find((p) => p.type.type === monsterPart.type)?.count ?? 0) > 0,
       outfit: {
         modifier: ["familiar weight", "-0.05 ml 0 min"],
       },
-      combat: new ForkoStrategy(() => overkillMacro(allParts.get(partType)!)),
+      combat: new ForkoStrategy(() => overkillMacro(monsterPart)),
       do: $location`Hobopolis Town Square`,
       completed: () =>
         /exposureesplanade([0-9]+)o?.gif/.test(visitUrl("clan_hobopolis.php?place=8")),
