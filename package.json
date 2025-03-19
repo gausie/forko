@@ -14,6 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "grimoire-kolmafia": "^0.3.29",
     "kolmafia": "^5.28456.0",
     "libram": "^0.10.9"
   },

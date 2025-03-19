@@ -1,82 +1,53 @@
-import {
-  getClanName,
-  inebrietyLimit,
-  myAdventures,
-  myInebriety,
-  print,
-  setAutoAttack,
-} from "kolmafia";
-import { $item, $location } from "libram";
+import { Quest, Task } from "grimoire-kolmafia";
+import { chatPrivate, getClanName, wait } from "kolmafia";
+import { $item, $location, get, set } from "libram";
 
-import { AdventuringManager, PrimaryGoal, usualDropItems } from "../adventure";
-import { adventureRunOrStasis } from "../combat";
-import {
-  getChoice,
-  getSewersState,
-  mustStop,
-  setChoice,
-  sewerAccess,
-  stopAt,
-  throughSewers,
-  wrapMain,
-} from "../lib";
-import { expectedTurns, moodAddItem, moodMinusCombat } from "../mood";
+import { args } from "../args";
+import { getCurrent, throughSewers, updateClanStatus } from "../clan";
+import { ForkoStrategy, Macro } from "../combat";
 
-function doContinue(stopTurncount: number) {
-  return sewerAccess() && !mustStop(stopTurncount) && myAdventures() >= 10;
-}
-
-export function doSewers(stopTurncount: number) {
-  if (!throughSewers() && !sewerAccess())
-    throw `You do not have dungeon access in clan ${getClanName()}.`;
-
-  let state = getSewersState();
-  if (doContinue(stopTurncount)) {
-    const overdrunk = myInebriety() > inebrietyLimit();
-    if (overdrunk) {
-      print("WARNING: Going through sewers while overdrunk is not recommended.", "red");
-    }
-
-    // Gnaw through bars
-    setChoice(211, 1);
-    setChoice(212, 1);
-    setChoice(197, 3); // Turn valve
-    setChoice(198, 3); // Open grate
-    setChoice(199, 2); // Ladder - skip.
-
-    setAutoAttack(0);
-
-    while (doContinue(stopTurncount)) {
-      if (state.valves >= 20) setChoice(197, 1); // Take tunnel and open grates.
-      if (state.grates >= 20) setChoice(198, 1); // Take tunnel and open valves.
-      if (state.grates + state.valves >= 32) setChoice(199, 1); // Take tunnel on useless ladder NC.
-
-      const maxTurnsEstimate = 150 - (state.grates + state.valves) * 3.2;
-      const anyTunnel = [197, 198, 199].some((adv: number) => getChoice(adv) === 1);
-      const equips = anyTunnel ? [$item`hobo code binder`, ...usualDropItems] : usualDropItems;
-
-      const location = $location`A Maze of Sewer Tunnels`;
-      moodMinusCombat(expectedTurns(stopTurncount), maxTurnsEstimate);
-      const manager = new AdventuringManager(
-        $location`A Maze of Sewer Tunnels`,
-        PrimaryGoal.MINUS_COMBAT,
-        [],
-        equips,
-      );
-      manager.setupFreeRuns();
-      manager.preAdventure();
-      if (!manager.willFreeRun) moodAddItem();
-      adventureRunOrStasis(location, manager.willFreeRun);
-
-      state = getSewersState();
-      print(`Opened ${state.grates} grates, turned ${state.valves} valves.`);
-    }
-  }
-
-  if (throughSewers()) print("Cleared sewers!");
-  else print("Stopping prematurely... not through sewers.");
-}
-
-export function main(args = "") {
-  wrapMain(args, () => doSewers(stopAt(args)));
-}
+export const Sewers: Quest<Task> = {
+  name: "Sewers",
+  completed: () => throughSewers(),
+  tasks: [
+    {
+      name: "Acquire Cagebait",
+      completed: () =>
+        get(`forko_${getCurrent()}_acquiredCagebait`, 0) > Date.now() - 1000 * 60 * 60,
+      do: () => {
+        chatPrivate(args.cagebait, `cage ${getClanName()}`);
+        wait(60);
+        set(`forko_${getCurrent()}_acquiredCagebait`, Date.now());
+      },
+    },
+    {
+      after: ["Acquire Cagebait"],
+      name: "Explore",
+      completed: () => false,
+      prepare: () => {
+        // Cap noncombat
+      },
+      acquire: [
+        { item: $item`unfortunate dumplings`, price: 20000 },
+        { item: $item`bottle of Ooze-O`, price: 20000 },
+        { item: $item`oil of oiliness`, price: 10000 },
+        { item: $item`gatorskin umbrella`, price: 10000 },
+      ],
+      outfit: {
+        equip: [$item`gatorskin umbrella`, $item`hobo code binder`],
+        modifier: "-combat",
+        bonuses: new Map([[$item`mafia thumb ring`, 200]]),
+      },
+      choices: {
+        197: 3, // Valve (turn)
+        198: 3, // Grate (open)
+        199: 2, // Ladder (skip)
+        211: 1, // Cage (gnaw)
+        212: 1, // Cage (gnaw)
+      },
+      combat: new ForkoStrategy(() => Macro.freeRun()),
+      do: $location`A Maze of Sewer Tunnels`,
+      post: () => updateClanStatus(),
+    },
+  ],
+};

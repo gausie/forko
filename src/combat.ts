@@ -1,3 +1,4 @@
+import { CombatStrategy } from "grimoire-kolmafia";
 import {
   adv1,
   choiceFollowsFight,
@@ -174,9 +175,8 @@ export class Macro extends LibramMacro {
     return new Macro().kill();
   }
 
-  static freeRun() {
-    return new Macro()
-      .skill($skill`Extract`)
+  freeRun() {
+    return this.skill($skill`Extract`)
       .skill($skill`Extract Jelly`)
       .externalIf(
         (haveFamiliar($familiar`Frumious Bandersnatch`) && haveEffect($effect`Ode to Booze`) > 0) ||
@@ -184,6 +184,7 @@ export class Macro extends LibramMacro {
         "runaway",
       )
       .trySkill(
+        "Bowl a Curveball",
         "Spring-Loaded Front Bumper",
         "Reflex Hammer",
         "KGB tranquilizer dart",
@@ -192,6 +193,10 @@ export class Macro extends LibramMacro {
       )
       .tryItem("Louder Than Bomb", "tattered scrap of paper", "GOTO", "green smoke bomb")
       .abort();
+  }
+
+  static freeRun() {
+    return new Macro().freeRun();
   }
 
   spellKill() {
@@ -369,4 +374,15 @@ export function adventureMacroAuto(
   nextMacro = nextMacro ?? Macro.abort();
   autoMacro.setAutoAttack();
   adventureMacro(loc, nextMacro);
+}
+
+export class ForkoStrategy extends CombatStrategy {
+  constructor(macro: () => Macro, useAutoAttack = () => true) {
+    super();
+    if (useAutoAttack()) {
+      this.autoattack(macro);
+    } else {
+      this.macro(macro);
+    }
+  }
 }

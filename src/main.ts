@@ -1,38 +1,50 @@
-import { getClanName, myTurncount, print, userConfirm } from "kolmafia";
+import { Args, getTasks } from "grimoire-kolmafia";
+import { sinceKolmafiaRevision } from "libram";
 
-import { mustStop, stopAt, wrapMain } from "./lib";
-import { doAhbg } from "./tasks/ahbg";
-import { doBb } from "./tasks/bb";
-import { doEe } from "./tasks/ee";
-import { doHeap } from "./tasks/heap";
-import { doPld } from "./tasks/pld";
-import { doSewers } from "./tasks/sewers";
-import { doTownsquare } from "./tasks/townsquare";
+import { args } from "./args";
+import { ForkoEngine } from "./engine/engine";
+import { Sewers } from "./tasks/sewers";
+import { TownSquare } from "./tasks/townsquare";
+import { printClanStatus, setClan } from "./wl";
 
-export function main(args: string) {
-  const stopTurncount = stopAt(args);
+export function main(params: string) {
+  sinceKolmafiaRevision(28425); // A recent version at time of refactor
 
-  if (["Bonus Adventures From Hell"].includes(getClanName())) {
-    print(`Clan ${getClanName()} is on blacklist.`, "red");
+  Args.fill(args, params);
+
+  if (args.help) {
+    Args.showHelp(args);
     return;
   }
 
-  if (!userConfirm(`You are in clan ${getClanName()}. Is this right?`)) {
-    print("Wrong clan.", "red");
-    return;
+  if (args.status) {
+    for (const clan of args.clans) {
+      setClan(clan, false);
+      printClanStatus();
+    }
   }
 
-  print(`Starting "mining"! Stopping in ${stopTurncount - myTurncount()} turns.`);
+  const tasks = getTasks([Sewers, TownSquare]);
 
-  wrapMain(args, () => {
-    if (!mustStop(stopTurncount)) doSewers(stopTurncount);
-    if (!mustStop(stopTurncount)) doTownsquare(stopTurncount);
-    if (!mustStop(stopTurncount)) doEe(stopTurncount, 1);
-    if (!mustStop(stopTurncount)) doBb(stopTurncount);
-    if (!mustStop(stopTurncount)) doHeap(stopTurncount);
-    if (!mustStop(stopTurncount)) doEe(stopTurncount, 2);
-    if (!mustStop(stopTurncount)) doPld(stopTurncount);
-    if (!mustStop(stopTurncount)) doAhbg(stopTurncount);
-    if (!mustStop(stopTurncount)) doEe(stopTurncount, 3);
-  });
+  const engine = new ForkoEngine(tasks);
+
+  try {
+    engine.run();
+  } finally {
+    engine.propertyManager.resetAll();
+  }
+
+  // print(`Starting "mining"! Stopping in ${stopTurncount - myTurncount()} turns.`);
+
+  // wrapMain(args, () => {
+  //   if (!mustStop(stopTurncount)) doSewers(stopTurncount);
+  //   if (!mustStop(stopTurncount)) doTownsquare(stopTurncount);
+  //   if (!mustStop(stopTurncount)) doEe(stopTurncount, 1);
+  //   if (!mustStop(stopTurncount)) doBb(stopTurncount);
+  //   if (!mustStop(stopTurncount)) doHeap(stopTurncount);
+  //   if (!mustStop(stopTurncount)) doEe(stopTurncount, 2);
+  //   if (!mustStop(stopTurncount)) doPld(stopTurncount);
+  //   if (!mustStop(stopTurncount)) doAhbg(stopTurncount);
+  //   if (!mustStop(stopTurncount)) doEe(stopTurncount, 3);
+  // });
 }

@@ -1,33 +1,21 @@
+import { Quest, Task } from "grimoire-kolmafia";
 import {
   abort,
   ceil,
   cliExecute,
   Effect,
   haveEffect,
-  inebrietyLimit,
   myBuffedstat,
-  myInebriety,
   numericModifier,
   print,
   round,
   toFloat,
   visitUrl,
 } from "kolmafia";
-import { $effect, $item, $location, $skill, $stat, ensureEffect } from "libram";
+import { $effect, $item, $location, $skill, $stat, getRemainingLiver } from "libram";
 
-import { AdventuringManager, PrimaryGoal, usualDropItems } from "../adventure";
-import { adventureMacro, Macro } from "../combat";
-import {
-  extractInt,
-  getImage,
-  memoizeTurncount,
-  mustStop,
-  setChoice,
-  stopAt,
-  turboMode,
-  wrapMain,
-} from "../lib";
-import { expectedTurns, moodBaseline } from "../mood";
+import { ForkoStrategy, Macro } from "../combat";
+import { extractInt, getImage, memoizeTurncount, turboMode } from "../lib";
 
 enum PartType {
   HOT,
@@ -110,33 +98,58 @@ const currentParts = memoizeTurncount(() => {
   return result;
 });
 
-const pldAccessible = memoizeTurncount(() => {
-  return visitUrl("clan_hobopolis.php?place=8").match(/purplelightdistrict[0-9]+.gif/);
-});
+let plan: PartPlan[] = [];
 
-function getParts(part: MonsterPart, desiredParts: number, stopTurncount: number) {
-  const current = currentParts().get(part) as number;
-  if (current >= desiredParts || pldAccessible() || mustStop(stopTurncount)) return;
+function buildPlan() {
+  // Assume we're at the end of our current image and estimate. This will be conservative.
+  const imagesRemaining = 11 - getImage($location`Hobopolis Town Square`);
+  let hobosRemaining = (imagesRemaining - 1) * 100;
+  // Make a plan: how many total scarehobos do we need to make to kill that many?
+  // Start with the part with the fewest (should be 0).
+  currentParts.forceUpdate();
+  const partCounts = [...currentParts().entries()];
+  partCounts.sort((x, y) => x[1] - y[1]);
+  plan = partCounts.map(([part]: [MonsterPart, number]) => new PartPlan(part));
+  for (const [idx, [, partCount]] of partCounts.entries()) {
+    if (hobosRemaining > 0 && idx < partCounts.length - 1) {
+      const [, nextPartCount] = partCounts[idx + 1];
+      const killsToNext = nextPartCount - partCount;
+      // Each part we add to our goal kills this many hobos - for the part with lowest, it's 9.
+      // The part with the second lowest, it's 2 hobos plus 1 scarehobo or 10.
+      const scarehoboFactor = idx + 9;
+      const partsThisRound = Math.min(
+        ceil(hobosRemaining / toFloat(scarehoboFactor) - 0.001),
+        killsToNext,
+      );
+      for (let idx2 = 0; idx2 <= idx; idx2++) {
+        plan[idx2].count += partsThisRound;
+      }
+      hobosRemaining -= partsThisRound * scarehoboFactor;
+    }
+  }
 
-  // This is up here so we have the right effects on for damage prediction.
-  const expected = expectedTurns(stopTurncount);
-  moodBaseline(expected);
-  ensureEffect($effect`Ur-Kel's Aria of Annoyance`, current - desiredParts);
+  if (hobosRemaining > 0) {
+    print(`Remaining after: ${hobosRemaining}`);
+    for (const partPlan of plan) {
+      partPlan.count += ceil((hobosRemaining * 3) / 7 / 6);
+    }
+  }
 
-  while (
-    (currentParts().get(part) as number) < desiredParts &&
-    !pldAccessible() &&
-    !mustStop(stopTurncount)
-  ) {
-    const manager = new AdventuringManager(
-      $location`Hobopolis Town Square`,
-      PrimaryGoal.NONE,
-      ["familiar weight", "-0.05 ml 0 min"],
-      usualDropItems,
-    );
-    manager.preAdventure();
+  for (const partPlan of plan) {
+    print(`PLAN: For part ${partPlan.type.name}, get ${partPlan.count} more parts.`);
+  }
+  plan.sort((x, y) => x.type.type - y.type.type);
+  for (const partPlan of plan) {
+    print(`PLAN: For part ${partPlan.type.name}, get ${partPlan.count} more parts.`);
+  }
+}
 
-    if ([PartType.COLD, PartType.STENCH, PartType.SPOOKY, PartType.SLEAZE].includes(part.type)) {
+function overkillMacro(part: MonsterPart) {
+  switch (part.type) {
+    case PartType.COLD:
+    case PartType.STENCH:
+    case PartType.SPOOKY:
+    case PartType.SLEAZE: {
       const predictedDamage =
         (32 + 0.5 * myBuffedstat($stat`Mysticality`)) *
         (1 + numericModifier("spell damage percent") / 100);
@@ -146,115 +159,65 @@ function getParts(part: MonsterPart, desiredParts: number, stopTurncount: number
       if (haveEffect(part.intrinsic) === 0) {
         cliExecute(part.intrinsic.default);
       }
-      Macro.stasis()
+      return Macro.stasis()
         .if_("monstername sausage goblin", Macro.skill($skill`Saucegeyser`).repeat())
         .skill($skill`Stuffed Mortar Shell`)
         .externalIf(!turboMode(), Macro.skill($skill`Cannelloni Cannon`).repeat())
-        .item($item`seal tooth`)
-        .setAutoAttack();
-    } else if (part.type === PartType.HOT) {
-      Macro.stasis()
+        .item($item`seal tooth`);
+    }
+    case PartType.HOT: {
+      return Macro.stasis()
         .skill($skill`Saucegeyser`)
-        .repeat()
-        .setAutoAttack();
-    } else if (part.type === PartType.PHYSICAL) {
-      Macro.stasis()
+        .repeat();
+    }
+    case PartType.PHYSICAL: {
+      return Macro.stasis()
         .skill($skill`Lunging Thrust-Smack`)
-        .repeat()
-        .setAutoAttack();
+        .repeat();
     }
-
-    adventureMacro($location`Hobopolis Town Square`, Macro.abort());
+    default:
+      return Macro.abortWithWarning("Unknown part type");
   }
 }
 
-export function doTownsquare(stopTurncount: number) {
-  if (pldAccessible()) {
-    print("Finished Town Square. Continuing...");
-    return;
-  } else if (mustStop(stopTurncount)) {
-    print("Out of adventures.");
-    return;
-  }
+const closeToDone = () =>
+  getImage($location`Hobopolis Town Square`) >= 11 || getRemainingLiver() < 0;
 
-  setChoice(230, 0); // Show binder adventure in browser.
-  setChoice(200, 0); // Show Hodgman in browser.
-  setChoice(272, 2); // Skip marketplace.
-  setChoice(225, 3); // Skip tent.
-
-  // print('Making available scarehobos.');
-  visitUrl("clan_hobopolis.php?preaction=simulacrum&place=3&qty=1&makeall=1");
-
-  const image = getImage($location`Hobopolis Town Square`);
-  if (image < 11 && myInebriety() <= inebrietyLimit()) {
-    // Assume we're at the end of our current image and estimate. This will be conservative.
-    const imagesRemaining = 11 - image;
-    let hobosRemaining = (imagesRemaining - 1) * 100;
-    // Make a plan: how many total scarehobos do we need to make to kill that many?
-    // Start with the part with the fewest (should be 0).
-    const partCounts = [...currentParts().entries()];
-    partCounts.sort((x, y) => x[1] - y[1]);
-    const plan = partCounts.map(([part]: [MonsterPart, number]) => new PartPlan(part));
-    for (const [idx, [, partCount]] of partCounts.entries()) {
-      if (hobosRemaining > 0 && idx < partCounts.length - 1) {
-        const [, nextPartCount] = partCounts[idx + 1];
-        const killsToNext = nextPartCount - partCount;
-        // Each part we add to our goal kills this many hobos - for the part with lowest, it's 9.
-        // The part with the second lowest, it's 2 hobos plus 1 scarehobo or 10.
-        const scarehoboFactor = idx + 9;
-        const partsThisRound = Math.min(
-          ceil(hobosRemaining / toFloat(scarehoboFactor) - 0.001),
-          killsToNext,
-        );
-        for (let idx2 = 0; idx2 <= idx; idx2++) {
-          plan[idx2].count += partsThisRound;
-        }
-        hobosRemaining -= partsThisRound * scarehoboFactor;
-      }
-    }
-
-    if (hobosRemaining > 0) {
-      print(`Remaining after: ${hobosRemaining}`);
-      for (const partPlan of plan) {
-        partPlan.count += ceil((hobosRemaining * 3) / 7 / 6);
-      }
-    }
-
-    for (const partPlan of plan) {
-      print(`PLAN: For part ${partPlan.type.name}, get ${partPlan.count} more parts.`);
-    }
-    plan.sort((x, y) => x.type.type - y.type.type);
-    for (const partPlan of plan) {
-      print(`PLAN: For part ${partPlan.type.name}, get ${partPlan.count} more parts.`);
-    }
-    for (const partPlan of plan) {
-      getParts(partPlan.type, partPlan.count, stopTurncount);
-    }
-    print("Making available scarehobos.");
-    visitUrl("clan_hobopolis.php?preaction=simulacrum&place=3&qty=1&makeall=1");
-  }
-  print("Close to goal; using 1-by-1 strategy.");
-
-  while (!pldAccessible() && !mustStop(stopTurncount)) {
-    if (myInebriety() <= inebrietyLimit()) {
-      for (const part of allParts.values()) {
-        getParts(part, 1, stopTurncount);
-      }
-      print("Making available scarehobos.");
-      visitUrl("clan_hobopolis.php?preaction=simulacrum&place=3&qty=1&makeall=1");
-    } else {
-      const physical = allParts.get(PartType.PHYSICAL)!;
-      getParts(physical, currentParts().get(physical)! + 1, stopTurncount);
-    }
-    currentParts.forceUpdate();
-  }
-  if (pldAccessible()) {
-    print("PLD accessible. Done with town square.");
-  } else if (mustStop(stopTurncount)) {
-    print("Out of adventures.");
-  }
-}
-
-export function main(args: string) {
-  wrapMain(args, () => doTownsquare(stopAt(args)));
-}
+export const TownSquare: Quest<Task> = {
+  name: "Town Square",
+  completed: () => /exposureesplanade([0-9]+)o?.gif/.test(visitUrl("clan_hobopolis.php?place=8")),
+  tasks: [
+    {
+      name: "Initial scarehobo check",
+      completed: () => false,
+      limit: { tries: 1 },
+      do: () => {
+        visitUrl("clan_hobopolis.php?preaction=simulacrum&place=3&qty=1&makeall=1");
+        buildPlan();
+        visitUrl("clan_hobopolis.php?preaction=simulacrum&place=3&qty=1&makeall=1");
+      },
+    },
+    ...[...allParts.keys()].map((partType) => ({
+      name: "Acquire cold parts",
+      choices: {
+        230: 0, // Show binder adventure in browser.
+        200: 0, // Show Hodgman in browser.
+        272: 2, // Skip marketplace.
+        225: 3, // Skip tent.
+      },
+      ready: () => (plan.find((p) => p.type.type === partType)?.count ?? 0) > 0,
+      outfit: {
+        modifier: ["familiar weight", "-0.05 ml 0 min"],
+      },
+      combat: new ForkoStrategy(() => overkillMacro(allParts.get(partType)!)),
+      do: $location`Hobopolis Town Square`,
+      completed: () =>
+        /exposureesplanade([0-9]+)o?.gif/.test(visitUrl("clan_hobopolis.php?place=8")),
+      post: () => {
+        if (!closeToDone()) return;
+        visitUrl("clan_hobopolis.php?preaction=simulacrum&place=3&qty=1&makeall=1");
+        buildPlan();
+      },
+    })),
+  ],
+};
