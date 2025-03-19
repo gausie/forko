@@ -38,17 +38,21 @@ import {
   use,
   useSkill,
 } from "kolmafia";
-import { $effect, $effects, $item, $items, $skill, $stat, ensureEffect, EnsureError, get } from "libram";
+import {
+  $effect,
+  $effects,
+  $item,
+  $items,
+  $skill,
+  $stat,
+  clamp,
+  ensureEffect,
+  EnsureError,
+  get,
+} from "libram";
 
 import { fillAsdonMartinTo } from "./asdon";
-import {
-  cheapest,
-  clamp,
-  getItem,
-  getPropertyBoolean,
-  getPropertyInt,
-  getPropertyString,
-} from "./lib";
+import { cheapest, getItem } from "./lib";
 import { setClan } from "./wl";
 
 export class MoodCastingPlan {
@@ -136,7 +140,7 @@ export function tryEnsureEffect(ef: Effect, turns = 1) {
 
 export function sausagesAvailable() {
   return Math.min(
-    getPropertyInt("_sausagesEaten"),
+    get("_sausagesEaten"),
     availableAmount($item`magical sausage`) + availableAmount($item`magical sausage casing`),
   );
 }
@@ -155,12 +159,12 @@ function tryUsePyec() {
   const stashClan = get("stashClan", "") || null;
   if (
     (availableAmount($item`Platinum Yendorian Express Card`) > 0 || stashClan !== null) &&
-    !getPropertyBoolean("expressCardUsed")
+    !get("expressCardUsed")
   ) {
     const havePyec = availableAmount(pyec) > 0;
     const currentClan = getClanName();
     let taken = false;
-    if (!havePyec || setClan(getPropertyString("stashClan"))) {
+    if (!havePyec || setClan(get("stashClan", ""))) {
       try {
         maximize("mp", false);
         if (stashClan !== null) setClan(stashClan);
@@ -337,7 +341,7 @@ export function moodMinusCombat(
 
   if (
     availableAmount($item`Powerful Glove`) > 0 &&
-    getPropertyInt("_powerfulGloveBatteryPowerUsed") < 100 &&
+    get("_powerfulGloveBatteryPowerUsed") < 100 &&
     haveEffect($effect`Invisible Avatar`) < maxTurnsMinusCombat
   ) {
     cliExecute("checkpoint");
@@ -353,7 +357,7 @@ export function moodMinusCombat(
     if (numericModifier(effect, "Combat Rate") > 0) shrug(effect as Effect);
   }
 
-  if (getPropertyBoolean("horseryAvailable") && getProperty("_horsery") !== "dark horse") {
+  if (get("horseryAvailable") && getProperty("_horsery") !== "dark horse") {
     cliExecute("horsery dark");
   }
 }
@@ -385,7 +389,7 @@ export function moodPlusCombat(
     if (numericModifier(effect, "Combat Rate") < 0) shrug(effect as Effect);
   }
 
-  if (getPropertyBoolean("horseryAvailable") && getProperty("_horsery") === "dark horse") {
+  if (get("horseryAvailable") && get("_horsery") === "dark horse") {
     cliExecute("horsery normal");
   }
 }

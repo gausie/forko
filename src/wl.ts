@@ -1,17 +1,14 @@
 import { getClanName, print, printHtml, setProperty, visitUrl, xpath } from "kolmafia";
-import { Clan, tuple } from "libram";
+import { Clan, get, tuple } from "libram";
 
-import { getPropertyString } from "./lib";
-import { getSewersState } from "./sewers";
+import { getSewersState } from "./lib";
 
 const zipTwoTuple = <T, U>(items: [T[], U[]]) => {
   return items[0].map((_, i) => tuple(items[0][i], items[1][i]));
 };
 
 function getClanCache(targetClanName: string | null = null) {
-  let clanCache = new Map<string, number>(
-    JSON.parse(getPropertyString("minehobo_clanCache", "[]")),
-  );
+  let clanCache = new Map<string, number>(JSON.parse(get("minehobo_clanCache", "[]")));
   if (
     Object.keys(clanCache).length === 0 ||
     (targetClanName !== null && !clanCache.has(targetClanName))

@@ -7,7 +7,6 @@ import {
   getCampground,
   getCounters,
   getFuel,
-  getProperty,
   haveEffect,
   haveFamiliar,
   haveSkill,
@@ -51,23 +50,16 @@ import {
   $items,
   $location,
   $locations,
+  $phylum,
   $skill,
+  clamp,
   get,
+  set,
+  totalFamiliarWeight,
 } from "libram";
 
 import { fillAsdonMartinTo } from "./asdon";
-import {
-  clamp,
-  getImagePld,
-  getPropertyBoolean,
-  getPropertyInt,
-  getPropertyString,
-  myFamiliarWeight,
-  sausageMp,
-  setChoice,
-  setPropertyInt,
-  turboMode,
-} from "./lib";
+import { getImagePld, sausageMp, setChoice, turboMode } from "./lib";
 import { tryEnsureSong } from "./mood";
 
 function has(itemOrSkill: Item | Skill) {
@@ -79,9 +71,9 @@ function has(itemOrSkill: Item | Skill) {
 }
 
 export function maximizeCached(objective: string) {
-  const objectiveChanged = getPropertyString("minehobo_lastObjective", "") !== objective;
+  const objectiveChanged = get("minehobo_lastObjective", "") !== objective;
 
-  let oldStats = getPropertyString("minehobo_lastStats", "0,0,0")
+  let oldStats = get("minehobo_lastStats", "0,0,0")
     .split(",")
     .map((s: string) => parseInt(s, 10));
   if (oldStats.length !== 3) oldStats = [0, 0, 0];
@@ -91,7 +83,7 @@ export function maximizeCached(objective: string) {
     (newStat, i) => newStat > oldStats[i] && oldStats[i] < 300 && newStat % checkMod === 0,
   );
 
-  const oldFamiliar = getPropertyString("minehobo_lastFamiliar", "");
+  const oldFamiliar = get("minehobo_lastFamiliar", "");
   const familiarChanged = oldFamiliar !== myFamiliar().toString();
 
   if (!objectiveChanged && !statsChanged && !familiarChanged) return;
@@ -147,7 +139,7 @@ function feedToMimic(amount: number, candy: Item) {
 const mimicFeedCandy = $items`Cold Hots candy, Daffy Taffy, Mr. Mediocrebar, Senior Mints, Wint-O-Fresh mint`;
 function maybeFeedMimic() {
   if (
-    getPropertyInt("minehobo_lastMimicFeedAscension", 0) < myAscensions() &&
+    get("minehobo_lastMimicFeedAscension", 0) < myAscensions() &&
     $familiar`Stocking Mimic`.experience < 600
   ) {
     const totalCandy = mimicFeedCandy
@@ -159,7 +151,7 @@ function maybeFeedMimic() {
       feedToMimic(toFeed, candy);
       remainingCandyToFeed -= toFeed;
     }
-    setPropertyInt("minehobo_lastMimicFeedAscension", myAscensions());
+    set("minehobo_lastMimicFeedAscension", myAscensions());
   }
 }
 
@@ -216,8 +208,8 @@ export function renderObjective(
 }
 
 export function getKramcoWandererChance() {
-  const fights = parseInt(getProperty("_sausageFights"));
-  const lastFight = parseInt(getProperty("_lastSausageMonsterTurn"));
+  const fights = get("_sausageFights");
+  const lastFight = get("_lastSausageMonsterTurn");
   const totalTurns = totalTurnsPlayed();
   if (fights < 1) {
     return lastFight === totalTurns && myTurncount() < 1 ? 0.5 : 1.0;
@@ -271,7 +263,7 @@ export class AdventuringManager {
     const additionalEquip: Item[] = [];
     if (
       getCampground()["Asdon Martin keyfob"] !== undefined &&
-      !getProperty("banishedMonsters").includes("Spring-Loaded Front Bumper")
+      !get("banishedMonsters").includes("Spring-Loaded Front Bumper")
     ) {
       if (getFuel() < 50) {
         fillAsdonMartinTo(100);
@@ -280,8 +272,7 @@ export class AdventuringManager {
     }
 
     for (const [pref, maxCount, itemOrSkill] of freeRunSources) {
-      const available =
-        typeof maxCount === "number" ? getPropertyInt(pref) < maxCount : !getPropertyBoolean(pref);
+      const available = typeof maxCount === "number" ? get(pref, 0) < maxCount : !get(pref, false);
       print(`${itemOrSkill} available: ${available}`);
       if (available && has(itemOrSkill as Item | Skill)) {
         if (itemOrSkill instanceof Item) additionalEquip.push(itemOrSkill as Item);
@@ -308,7 +299,7 @@ export class AdventuringManager {
   }
 
   setupFreeRuns() {
-    if (!getPropertyBoolean("_minehobo_freeRunFamiliarUsed", false) && freeRunFamiliar !== null) {
+    if (!get("_minehobo_freeRunFamiliarUsed", false) && freeRunFamiliar !== null) {
       useFamiliar(freeRunFamiliar);
       maximizeCached(
         renderObjective(
@@ -319,7 +310,7 @@ export class AdventuringManager {
         ),
       );
       if (
-        getPropertyInt("_banderRunaways") < Math.floor(myFamiliarWeight() / 5) &&
+        get("_banderRunaways") < Math.floor(totalFamiliarWeight() / 5) &&
         tryEnsureSong($skill`The Ode to Booze`)
       ) {
         this.primaryGoal = PrimaryGoal.NONE;
@@ -360,7 +351,7 @@ export class AdventuringManager {
     if (pickedFamiliar === null && this.willFreeRun) {
       if (
         this.primaryGoal === PrimaryGoal.MINUS_COMBAT &&
-        myFamiliarWeight($familiar`Disgeist`) >= 38
+        totalFamiliarWeight($familiar`Disgeist`) >= 38
       ) {
         pickedFamiliar = $familiar`Disgeist`;
       } else if (myInebriety() <= inebrietyLimit() && lowMp && !turbo) {
@@ -384,7 +375,7 @@ export class AdventuringManager {
       const familiarValue: [Familiar, number][] = [[$familiar`Red-Nosed Snapper`, 0]];
 
       const jellyProbability = [1, 0.5, 0.33, 0.25, 0.2, 0.05][
-        clamp(getPropertyInt("_spaceJellyfishDrops"), 0, 5)
+        clamp(get("_spaceJellyfishDrops"), 0, 5)
       ];
       if (this.location === $location`The Purple Light District`) {
         const jellyfishValue = mallPrice($item`sleaze jelly`) * jellyProbability;
@@ -396,7 +387,7 @@ export class AdventuringManager {
 
       if (!this.willFreeRun) {
         if (!turbo && myInebriety() <= inebrietyLimit()) {
-          const mimicWeight = myFamiliarWeight($familiar`Stocking Mimic`);
+          const mimicWeight = totalFamiliarWeight($familiar`Stocking Mimic`);
           const actionPercentage = 1 / 3 + (haveEffect($effect`Jingle Jangle Jingle`) ? 0.1 : 0);
           const mimicValue =
             mimicDropValue() + ((mimicWeight * actionPercentage * 1) / 4) * 10 * 4 * 1.2;
@@ -418,7 +409,7 @@ export class AdventuringManager {
           )
             continue;
           const { expected, drop, pref } = rotatingFamiliars[familiarName];
-          const dropsAlready = getPropertyInt(pref);
+          const dropsAlready = get(pref, 0);
           if (dropsAlready >= expected.length) continue;
           const value = mallPrice(drop) / expected[dropsAlready];
           familiarValue.push([familiar, value]);
@@ -433,7 +424,7 @@ export class AdventuringManager {
     }
     if (
       pickedFamiliar === $familiar`Red-Nosed Snapper` &&
-      getProperty("redSnapperPhylum") !== "hobo"
+      get("redSnapperPhylum") !== $phylum`hobo`
     ) {
       visitUrl("familiar.php?action=guideme&pwd");
       visitUrl("choice.php?pwd&whichchoice=1396&option=1&cat=hobo");
@@ -465,11 +456,11 @@ export class AdventuringManager {
       !this.willFreeRun &&
       myInebriety() <= inebrietyLimit()
     ) {
-      if (getPropertyInt("_chestXRayUsed") < 3) {
+      if (get("_chestXRayUsed") < 3) {
         this.forceEquip = [...exclude(this.forceEquip, turnOnlyItems), $item`Lil' Doctor™ bag`];
-      } else if (!getPropertyBoolean("_firedJokestersGun")) {
+      } else if (!get("_firedJokestersGun")) {
         this.forceEquip = [...exclude(this.forceEquip, turnOnlyItems), $item`The Jokester's gun`];
-      } else if (!getPropertyBoolean("_missileLauncherUsed")) {
+      } else if (!get("_missileLauncherUsed")) {
         this.forceEquip = exclude(this.forceEquip, turnOnlyItems);
         fillAsdonMartinTo(100);
       }

@@ -9,12 +9,11 @@ import {
   setProperty,
   visitUrl,
 } from "kolmafia";
-import { $location } from "libram";
+import { $location, clamp } from "libram";
 
-import { AdventuringManager, PrimaryGoal, usualDropItems } from "./adventure";
-import { adventureMacroAuto, Macro } from "./combat";
+import { AdventuringManager, PrimaryGoal, usualDropItems } from "../adventure";
+import { adventureMacroAuto, Macro } from "../combat";
 import {
-  clamp,
   extractInt,
   getChoice,
   getImage,
@@ -24,8 +23,8 @@ import {
   setChoice,
   stopAt,
   wrapMain,
-} from "./lib";
-import { expectedTurns, moodBaseline, moodMinusCombat } from "./mood";
+} from "../lib";
+import { expectedTurns, moodBaseline, moodMinusCombat } from "../mood";
 
 // Formatted like clanid:ascension;clanid:ascension
 function clanYodelAscensions() {

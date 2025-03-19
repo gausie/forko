@@ -15,8 +15,8 @@ import {
 } from "kolmafia";
 import { $effect, $item, $location, $skill, $stat, ensureEffect } from "libram";
 
-import { AdventuringManager, PrimaryGoal, usualDropItems } from "./adventure";
-import { adventureMacro, Macro } from "./combat";
+import { AdventuringManager, PrimaryGoal, usualDropItems } from "../adventure";
+import { adventureMacro, Macro } from "../combat";
 import {
   extractInt,
   getImage,
@@ -26,8 +26,8 @@ import {
   stopAt,
   turboMode,
   wrapMain,
-} from "./lib";
-import { expectedTurns, moodBaseline } from "./mood";
+} from "../lib";
+import { expectedTurns, moodBaseline } from "../mood";
 
 enum PartType {
   HOT,

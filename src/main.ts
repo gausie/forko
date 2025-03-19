@@ -1,13 +1,13 @@
 import { getClanName, myTurncount, print, userConfirm } from "kolmafia";
 
-import { doAhbg } from "./ahbg";
-import { doBb } from "./bb";
-import { doEe } from "./ee";
-import { doHeap } from "./heap";
 import { mustStop, stopAt, wrapMain } from "./lib";
-import { doPld } from "./pld";
-import { doSewers } from "./sewers";
-import { doTownsquare } from "./townsquare";
+import { doAhbg } from "./tasks/ahbg";
+import { doBb } from "./tasks/bb";
+import { doEe } from "./tasks/ee";
+import { doHeap } from "./tasks/heap";
+import { doPld } from "./tasks/pld";
+import { doSewers } from "./tasks/sewers";
+import { doTownsquare } from "./tasks/townsquare";
 
 export function main(args: string) {
   const stopTurncount = stopAt(args);

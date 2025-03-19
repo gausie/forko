@@ -5,10 +5,7 @@ import {
   cliExecute,
   closetAmount,
   eat,
-  Familiar,
-  familiarWeight,
   formatDateTime,
-  getProperty,
   haveEffect,
   Item,
   itemAmount,
@@ -17,7 +14,6 @@ import {
   mallPrice,
   myAdventures,
   myClass,
-  myFamiliar,
   myLocation,
   myMaxmp,
   myMp,
@@ -27,7 +23,6 @@ import {
   printHtml,
   retrieveItem,
   setAutoAttack,
-  setProperty,
   shopAmount,
   takeCloset,
   takeShop,
@@ -37,49 +32,15 @@ import {
   useSkill,
   visitUrl,
   wait,
-  weightAdjustment,
 } from "kolmafia";
-import { $class, $effect, $item, $items, $location, $skill, $thrall, get } from "libram";
-
-import { throughSewers } from "./sewers";
-
-export function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(n, max));
-}
-
-export function getPropertyString(name: string, def: string | null = null): string {
-  const str = getProperty(name);
-  return str === "" && def !== null ? def : str;
-}
-
-export function getPropertyInt(name: string, default_: number | null = null): number {
-  const str = getProperty(name);
-  if (str === "") {
-    if (default_ === null) throw `Unknown property ${name}.`;
-    else return default_;
-  }
-  return parseInt(str, 10);
-}
-
-export function getPropertyBoolean(name: string, default_: boolean | null = null) {
-  const str = getProperty(name);
-  if (str === "") {
-    if (default_ === null) throw `Unknown property ${name}.`;
-    else return default_;
-  }
-  return str === "true";
-}
-
-export function setPropertyInt(name: string, value: number) {
-  setProperty(name, value.toString());
-}
+import { $class, $effect, $item, $items, $location, $skill, $thrall, get, set } from "libram";
 
 export function setChoice(adv: number, choice: number) {
-  setProperty(`choiceAdventure${adv}`, `${choice}`);
+  return set(`choiceAdventure${adv}`, `${choice}`);
 }
 
 export function getChoice(adv: number) {
-  return getPropertyInt(`choiceAdventure${adv}`);
+  return get(`choiceAdventure${adv}`, 0);
 }
 
 export function cheapest(...items: Item[]) {
@@ -125,20 +86,15 @@ export function sausageMp(target: number) {
   if (
     myMp() < target &&
     myMaxmp() >= 400 &&
-    getPropertyInt("_sausagesEaten") < 23 &&
+    get("_sausagesEaten") < 23 &&
     availableAmount($item`magical sausage casing`) > 0
   ) {
     eat(1, Item.get("magical sausage"));
   }
 }
 
-export function myFamiliarWeight(familiar: Familiar | null = null) {
-  if (familiar === null) familiar = myFamiliar();
-  return familiarWeight(familiar) + weightAdjustment();
-}
-
 export function lastWasCombat() {
-  return !myLocation().noncombatQueue.includes(getProperty("lastEncounter"));
+  return !myLocation().noncombatQueue.includes(get("lastEncounter"));
 }
 
 export function unclosetNickels() {
@@ -268,6 +224,25 @@ export const getImageAhbg = memoizeTurncount(
   10,
 );
 
+export function throughSewers() {
+  return visitUrl("clan_hobopolis.php").includes("clan_hobopolis.php?place=2");
+}
+
+export function sewerAccess() {
+  return visitUrl("clan_hobopolis.php").includes("adventure.php?snarfblat=166");
+}
+
+export const getSewersState = memoizeTurncount(() => {
+  const logText = visitUrl("clan_raidlogs.php");
+  const grates = extractInt(/opened (a|[0-9]+) sewer grate/g, logText);
+  const valves = extractInt(
+    /lowered the water level( [0-9]+ times?)? \(([0-9]+) turn/g,
+    logText,
+    2,
+  );
+  return { grates, valves };
+});
+
 export function wrapMain(args = "", action: () => void) {
   try {
     turbo = args.includes("turbo");
@@ -285,15 +260,15 @@ export function wrapMain(args = "", action: () => void) {
       cliExecute("terminal educate digitize; terminal educate extract");
     }
     if (get("boomBoxSong") !== "Food Vibrations") cliExecute("boombox food");
-    setProperty("hpAutoRecovery", turbo ? "0.5" : "0.8");
-    setProperty("hpAutoRecoveryTarget", "0.95");
+    set("hpAutoRecovery", turbo ? "0.5" : "0.8");
+    set("hpAutoRecoveryTarget", "0.95");
     action();
     print("Done mining.");
   } finally {
     setAutoAttack(0);
-    setProperty("minehobo_lastObjective", "");
-    setProperty("minehobo_lastStats", "");
-    setProperty("minehobo_lastFamiliar", "");
+    set("minehobo_lastObjective", "");
+    set("minehobo_lastStats", "");
+    set("minehobo_lastFamiliar", "");
     unclosetNickels();
     if (throughSewers()) recordInstanceState();
   }

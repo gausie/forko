@@ -28,9 +28,20 @@ import {
   userConfirm,
   useSkill,
 } from "kolmafia";
-import { $class, $effect, $effects, $item, $items, $skill, $skills, get, have } from "libram";
+import {
+  $class,
+  $effect,
+  $effects,
+  $item,
+  $items,
+  $skill,
+  $skills,
+  clamp,
+  get,
+  have,
+} from "libram";
 
-import { clamp, getItem } from "./lib";
+import { getItem } from "./lib";
 import { drive } from "./mood";
 
 function equipmentItem(itemOrString: Item | string) {

@@ -8,24 +8,21 @@ import {
   print,
   visitUrl,
 } from "kolmafia";
-import { $familiar, $location, $monster, $skill } from "libram";
+import { $familiar, $location, $monster, $skill, clamp, get, set } from "libram";
 
-import { AdventuringManager, PrimaryGoal, usualDropItems } from "./adventure";
-import { adventureMacroAuto, adventureRunOrStasis, Macro } from "./combat";
+import { AdventuringManager, PrimaryGoal, usualDropItems } from "../adventure";
+import { adventureMacroAuto, adventureRunOrStasis, Macro } from "../combat";
 import {
-  clamp,
   extractInt,
   getImageHeap,
-  getPropertyInt,
   lastWasCombat,
   mustStop,
   printLines,
   setChoice,
-  setPropertyInt,
   stopAt,
   wrapMain,
-} from "./lib";
-import { expectedTurns, moodMinusCombat } from "./mood";
+} from "../lib";
+import { expectedTurns, moodMinusCombat } from "../mood";
 
 class HeapState {
   defeated = 0;
@@ -46,7 +43,7 @@ function estimateRemaining(heapState: HeapState) {
 const FREE_RUN_HEAP = true;
 export function doHeap(stopTurncount: number) {
   if (getImageHeap() >= 10) {
-    setPropertyInt("minehobo_heapNcsUntilCompost", 0);
+    set("minehobo_heapNcsUntilCompost", 0);
     print("At Oscus. Heap complete!");
     return;
   }
@@ -62,11 +59,11 @@ export function doHeap(stopTurncount: number) {
 
   while (!mustStop(stopTurncount)) {
     printLines(
-      `NCS until we compost: ${getPropertyInt("minehobo_heapNcsUntilCompost", 0)}`,
+      `NCS until we compost: ${get("minehobo_heapNcsUntilCompost", 0)}`,
       `Image (approx): ${getImageHeap()}`,
     );
 
-    setChoice(216, getPropertyInt("minehobo_heapNcsUntilCompost", 0) <= 0 ? 1 : 2);
+    setChoice(216, get("minehobo_heapNcsUntilCompost", 0) <= 0 ? 1 : 2);
 
     const estimatedTurns = estimateRemaining(state) / 1.9;
     moodMinusCombat(expectedTurns(stopTurncount), clamp(estimatedTurns, 0, 300));
@@ -99,18 +96,15 @@ export function doHeap(stopTurncount: number) {
       state.defeated += 1;
     } else if (!lastWasCombat()) {
       if (lastChoice() === 216) {
-        if (getPropertyInt("minehobo_heapNcsUntilCompost", 0) <= 0) {
+        if (get("minehobo_heapNcsUntilCompost", 0) <= 0) {
           // We just composted.
-          setPropertyInt("minehobo_heapNcsUntilCompost", 5);
+          set("minehobo_heapNcsUntilCompost", 5);
         }
       } else if (lastChoice() === 203) {
         break;
       } else if ([214, 218].includes(lastChoice())) {
         // Some other choice adventure is filling the queue.
-        setPropertyInt(
-          "minehobo_heapNcsUntilCompost",
-          getPropertyInt("minehobo_heapNcsUntilCompost", 0) - 1,
-        );
+        set("minehobo_heapNcsUntilCompost", get("minehobo_heapNcsUntilCompost", 0) - 1);
         if (lastChoice() === 214) state.trashcanos += 1;
       }
     }
@@ -120,7 +114,7 @@ export function doHeap(stopTurncount: number) {
 
   if (getImageHeap.forceUpdate() === 10) {
     // Reset for next instance once we find Oscus.
-    setPropertyInt("minehobo_heapNcsUntilCompost", 0);
+    set("minehobo_heapNcsUntilCompost", 0);
     print("At Oscus. Heap complete!");
   }
 }

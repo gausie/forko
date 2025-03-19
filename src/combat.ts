@@ -30,15 +30,19 @@ import {
   useSkill,
   visitUrl,
 } from "kolmafia";
-import { $effect, $familiar, $item, $items, $monster, $skill, Macro as LibramMacro } from "libram";
-
 import {
-  getPropertyBoolean,
-  getPropertyInt,
-  myFamiliarWeight,
-  setPropertyInt,
-  turboMode,
-} from "./lib";
+  $effect,
+  $familiar,
+  $item,
+  $items,
+  $monster,
+  $skill,
+  get,
+  Macro as LibramMacro,
+  totalFamiliarWeight,
+} from "libram";
+
+import { turboMode } from "./lib";
 
 // multiFight() stolen from Aenimus: https://github.com/Aenimus/aen_cocoabo_farm/blob/master/scripts/aen_combat.ash.
 // Thanks! Licensed under MIT license.
@@ -61,7 +65,7 @@ export class Macro extends LibramMacro {
 
   collect() {
     const maxMimicDamage =
-      myFamiliar() === $familiar`Stocking Mimic` ? 2 * (myFamiliarWeight() + 3) : 0;
+      myFamiliar() === $familiar`Stocking Mimic` ? 2 * (totalFamiliarWeight() + 3) : 0;
     const maxDamage = 2 * candyblastDamage() + maxMimicDamage;
     return this.externalIf(!turboMode(), Macro.if_("!hpbelow 500", Macro.skill($skill`Extract`)))
       .externalIf(
@@ -74,8 +78,8 @@ export class Macro extends LibramMacro {
         ),
       )
       .externalIf(
-        getPropertyInt("_sourceTerminalDigitizeMonsterCount") >= 7 &&
-          getPropertyInt("_sourceTerminalDigitizeUses") < 3 &&
+        get("_sourceTerminalDigitizeMonsterCount") >= 7 &&
+          get("_sourceTerminalDigitizeUses") < 3 &&
           getCounters("Digitize Monster", 0, 0) !== "",
         Macro.if_(
           `monstername ${getProperty("_sourceTerminalDigitizeMonster")}`,
@@ -110,7 +114,7 @@ export class Macro extends LibramMacro {
         myFamiliar() === $familiar`Stocking Mimic`,
         Macro.while_(
           `!pastround 9 && !hpbelow 500 && (!monstername "normal hobo" || monsterhpabove ${
-            2 * myFamiliarWeight()
+            2 * totalFamiliarWeight()
           })`,
           Macro.item($item`seal tooth`),
         ),
@@ -129,23 +133,23 @@ export class Macro extends LibramMacro {
     return this.externalIf(myInebriety() > inebrietyLimit(), "attack")
       .if_("monstername sleaze hobo", Macro.skill($skill`Saucegeyser`).repeat())
       .externalIf(
-        getPropertyInt("_shatteringPunchUsed") < 3,
+        get("_shatteringPunchUsed") < 3,
         Macro.if_(Macro.nonFree(), Macro.skill($skill`Shattering Punch`)),
       )
       .externalIf(
-        !getPropertyBoolean("_gingerbreadMobHitUsed"),
+        !get("_gingerbreadMobHitUsed"),
         Macro.if_(Macro.nonFree(), Macro.skill($skill`Gingerbread Mob Hit`)),
       )
       .externalIf(
-        getPropertyInt("_chestXRayUsed") < 3 && haveEquipped($item`Lil' Doctor™ bag`),
+        get("_chestXRayUsed") < 3 && haveEquipped($item`Lil' Doctor™ bag`),
         Macro.if_(Macro.nonFree(), Macro.skill($skill`Chest X-Ray`)),
       )
       .externalIf(
-        !getPropertyBoolean("_firedJokestersGun") && haveEquipped($item`The Jokester's gun`),
+        !get("_firedJokestersGun") && haveEquipped($item`The Jokester's gun`),
         Macro.if_(Macro.nonFree(), Macro.skill($skill`Fire the Jokester's Gun`)),
       )
       .externalIf(
-        !getPropertyBoolean("_missileLauncherUsed") &&
+        !get("_missileLauncherUsed") &&
           getCampground()["Asdon Martin keyfob"] !== undefined &&
           getFuel() >= 100,
         Macro.if_(Macro.nonFree(), Macro.skill($skill`Asdon Martin: Missile Launcher`)),
@@ -259,33 +263,29 @@ export function main(initialRound: number, foe: Monster) {
       if (
         myFamiliar() === Familiar.get("Frumious Bandersnatch") &&
         haveEffect(Effect.get("Ode to Booze")) > 0 &&
-        getPropertyInt("_banderRunaways") < myFamiliarWeight() / 5
+        get("_banderRunaways") < totalFamiliarWeight() / 5
       ) {
-        const banderRunaways = getPropertyInt("_banderRunaways");
+        const banderRunaways = get("_banderRunaways");
         runaway();
-        if (getPropertyInt("_banderRunaways") === banderRunaways) {
+        if (get("_banderRunaways") === banderRunaways) {
           print("WARNING: Mafia is not tracking bander runaways correctly.");
-          setPropertyInt("_banderRunaways", banderRunaways + 1);
+          get("_banderRunaways", banderRunaways + 1);
         }
       } else if (haveSkill(Skill.get("Spring-Loaded Front Bumper"))) {
         useSkill(1, Skill.get("Spring-Loaded Front Bumper"));
-      } else if (haveSkill(Skill.get("Reflex Hammer")) && getPropertyInt("_reflexHammerUsed") < 3) {
+      } else if (haveSkill(Skill.get("Reflex Hammer")) && get("_reflexHammerUsed") < 3) {
         useSkill(1, Skill.get("Reflex Hammer"));
       } else if (
         haveSkill(Skill.get("KGB tranquilizer dart")) &&
-        getPropertyInt("_kgbTranquilizerDartUses") < 3
+        get("_kgbTranquilizerDartUses") < 3
       ) {
         useSkill(1, Skill.get("KGB tranquilizer dart"));
       } else if (
         haveSkill(Skill.get("Show them your ring")) &&
-        !getPropertyBoolean("_mafiaMiddleFingerRingUsed")
+        !get("_mafiaMiddleFingerRingUsed")
       ) {
         useSkill(1, Skill.get("Show them your ring"));
-      } else if (
-        myMp() >= 50 &&
-        haveSkill(Skill.get("Snokebomb")) &&
-        getPropertyInt("_snokebombUsed") < 3
-      ) {
+      } else if (myMp() >= 50 && haveSkill(Skill.get("Snokebomb")) && get("_snokebombUsed") < 3) {
         useSkill(1, Skill.get("Snokebomb"));
       } else if (freeRunItems.some((item: Item) => itemAmount(item) > 0)) {
         Macro.item(freeRunItems.find((item: Item) => itemAmount(item) > 0) as Item)
