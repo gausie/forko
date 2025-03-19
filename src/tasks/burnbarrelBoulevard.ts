@@ -1,3 +1,4 @@
+import { Quest, Task } from "grimoire-kolmafia";
 import { floor, print, visitUrl } from "kolmafia";
 import { $location } from "libram";
 
@@ -97,3 +98,9 @@ export function doBb(stopTurncount: number) {
 export function main(args: string) {
   wrapMain(args, () => doBb(stopAt(args)));
 }
+
+export const BurnbarrelBoulevard: Quest<Task> = {
+  name: "Burnbarrel Boulevard",
+  completed: () => getImageBb() >= 10,
+  tasks: [],
+};

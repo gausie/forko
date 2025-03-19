@@ -1,3 +1,4 @@
+import { Quest, Task } from "grimoire-kolmafia";
 import {
   abort,
   getClanId,
@@ -184,3 +185,9 @@ export function doEe(stopTurncount: number, pass: number) {
 export function main(args: string) {
   wrapMain(args, () => doEe(stopAt(args), 4));
 }
+
+export const ExposureEsplanade: Quest<Task> = {
+  name: "Exposure Esplanade",
+  completed: () => getImageEe() >= 10,
+  tasks: [],
+};

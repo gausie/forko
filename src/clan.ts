@@ -1,10 +1,23 @@
-import { abort, getClanId, getClanName, myAscensions, myId, visitUrl } from "kolmafia";
+import {
+  abort,
+  getClanId,
+  getClanName,
+  myAscensions,
+  myId,
+  print,
+  printHtml,
+  visitUrl,
+} from "kolmafia";
 import { Clan, get, set } from "libram";
+
+import { extractInt } from "./lib";
 
 type ClanStatus = {
   id: number;
   defeated: string[];
   sewers: boolean;
+  grates: number;
+  valves: number;
 };
 
 function parseClanStatus(): ClanStatus | null {
@@ -16,10 +29,16 @@ function parseClanStatus(): ClanStatus | null {
     (boss) => new RegExp(`defeated +${boss}`).test(page),
   );
   const sewers = page.includes(`(#${myId()}) made it through the sewer`);
+
+  const grates = extractInt(/opened (a|[0-9]+) sewer grate/g, page);
+  const valves = extractInt(/lowered the water level( [0-9]+ times?)? \(([0-9]+) turn/g, page, 2);
+
   return {
     id,
     defeated,
     sewers,
+    grates,
+    valves,
   };
 }
 
@@ -53,4 +72,18 @@ export function getClanStatus(): ClanStatus {
 
 export function throughSewers() {
   return getClanStatus().sewers;
+}
+
+export function printStatus() {
+  const status = getClanStatus();
+  printHtml(`<b>Hobopolis cleared. ${status.defeated.length} boss(es) defeated.</b>`);
+
+  visitUrl("clan_basement.php?whiteboard=1")
+    .match("<textarea[^>]*name=whiteboard[^>]*>([^<]*)</textarea>")?.[1]
+    .split("\n")
+    .filter((line) => line.trim().length > 0)
+    .forEach((l) => print(l));
+
+  print(`Sewers at ${status.grates} grates, ${status.valves} valves`);
+  print();
 }
