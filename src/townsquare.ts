@@ -13,7 +13,7 @@ import {
   toFloat,
   visitUrl,
 } from "kolmafia";
-import { $effect, $item, $location, $skill, $stat } from "libram";
+import { $effect, $item, $location, $skill, $stat, ensureEffect } from "libram";
 
 import { AdventuringManager, PrimaryGoal, usualDropItems } from "./adventure";
 import { adventureMacro, Macro } from "./combat";
@@ -27,7 +27,7 @@ import {
   turboMode,
   wrapMain,
 } from "./lib";
-import { ensureEffect, expectedTurns, moodBaseline } from "./mood";
+import { expectedTurns, moodBaseline } from "./mood";
 
 enum PartType {
   HOT,

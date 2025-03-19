@@ -38,7 +38,7 @@ import {
   use,
   useSkill,
 } from "kolmafia";
-import { $effect, $effects, $item, $items, $skill, $stat, get } from "libram";
+import { $effect, $effects, $item, $items, $skill, $stat, ensureEffect, EnsureError, get } from "libram";
 
 import { fillAsdonMartinTo } from "./asdon";
 import {
@@ -124,17 +124,14 @@ export function tryEnsureSong(skill: Skill, turns = 1) {
   return haveEffect(effect) >= turns;
 }
 
-export function ensureEffect(ef: Effect, turns = 1) {
-  if (!tryEnsureEffect(ef, turns)) {
-    throw `Failed to get effect ${ef.name}.`;
-  }
-}
-
 export function tryEnsureEffect(ef: Effect, turns = 1) {
-  for (let i = 0; i < 100 && haveEffect(ef) < turns; i++) {
-    if (!cliExecute(ef.default)) return false;
+  try {
+    ensureEffect(ef, turns);
+    return true;
+  } catch (error) {
+    if (error instanceof EnsureError) return false;
+    throw error;
   }
-  return haveEffect(ef) === 0;
 }
 
 export function sausagesAvailable() {
