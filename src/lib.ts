@@ -5,11 +5,14 @@ import {
   cliExecute,
   closetAmount,
   eat,
+  Familiar,
   familiarWeight,
   formatDateTime,
   getProperty,
   haveEffect,
+  Item,
   itemAmount,
+  Location,
   logprint,
   mallPrice,
   myAdventures,
@@ -37,7 +40,8 @@ import {
   weightAdjustment,
 } from "kolmafia";
 import { $class, $effect, $item, $items, $location, $skill, $thrall, get } from "libram";
-import { getSewersState, throughSewers } from "./sewers";
+
+import { throughSewers } from "./sewers";
 
 export function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(n, max));
@@ -88,10 +92,10 @@ export function cheapest(...items: Item[]) {
 export function getItem(qty: number, item: Item, maxPrice: number) {
   if (item !== $item`pocket wish` && qty * mallPrice(item) > 1000000) abort("bad get!");
 
-  try {
-    retrieveItem(qty, item);
-    // eslint-disable-next-line no-empty
-  } catch (e) {}
+  const success = retrieveItem(qty, item);
+  // eslint-disable-next-line no-empty
+  if (!success) {
+  }
 
   let remaining = qty - itemAmount(item);
   if (remaining <= 0) return qty;
@@ -250,18 +254,18 @@ export function memoizeTurncount<T>(func: (...args: []) => T, turnThreshold = 1)
 
 export const getImageTownsquare = memoizeTurncount(
   () => getImage($location`Hobopolis Town Square`),
-  10
+  10,
 );
 export const getImageBb = memoizeTurncount(() => getImage($location`Burnbarrel Blvd.`));
 export const getImageEe = memoizeTurncount(() => getImage($location`Exposure Esplanade`), 10);
 export const getImageHeap = memoizeTurncount(() => getImage($location`The Heap`), 10);
 export const getImagePld = memoizeTurncount(
   () => getImage($location`The Purple Light District`),
-  10
+  10,
 );
 export const getImageAhbg = memoizeTurncount(
   () => getImage($location`The Ancient Hobo Burial Ground`),
-  10
+  10,
 );
 
 export function wrapMain(args = "", action: () => void) {

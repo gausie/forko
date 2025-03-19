@@ -9,6 +9,7 @@ import {
   visitUrl,
 } from "kolmafia";
 import { $familiar, $location, $monster, $skill } from "libram";
+
 import { AdventuringManager, PrimaryGoal, usualDropItems } from "./adventure";
 import { adventureMacroAuto, adventureRunOrStasis, Macro } from "./combat";
 import {
@@ -62,7 +63,7 @@ export function doHeap(stopTurncount: number) {
   while (!mustStop(stopTurncount)) {
     printLines(
       `NCS until we compost: ${getPropertyInt("minehobo_heapNcsUntilCompost", 0)}`,
-      `Image (approx): ${getImageHeap()}`
+      `Image (approx): ${getImageHeap()}`,
     );
 
     setChoice(216, getPropertyInt("minehobo_heapNcsUntilCompost", 0) <= 0 ? 1 : 2);
@@ -73,7 +74,7 @@ export function doHeap(stopTurncount: number) {
       $location`The Heap`,
       PrimaryGoal.MINUS_COMBAT,
       [],
-      usualDropItems
+      usualDropItems,
     );
     if (tryFreeRun) manager.setupFreeRuns();
     manager.preAdventure();
@@ -83,8 +84,8 @@ export function doHeap(stopTurncount: number) {
         'hasskill CLEESH && hasskill Macrometeorite && hasskill Extract Jelly && !hpbelow 500 && !pastround 20 && monstername "stench hobo"',
         Macro.skill($skill`Extract Jelly`)
           .skill($skill`CLEESH`)
-          .skill($skill`Macrometeorite`)
-      ).toString()
+          .skill($skill`Macrometeorite`),
+      ).toString(),
     )
       .stasis()
       .kill();
@@ -94,7 +95,7 @@ export function doHeap(stopTurncount: number) {
       adventureMacroAuto($location`The Heap`, macro);
     }
 
-    if (lastWasCombat() && lastMonster() === $monster`stench hobo`) {
+    if (lastWasCombat() && lastMonster() === $monster`Stench hobo`) {
       state.defeated += 1;
     } else if (!lastWasCombat()) {
       if (lastChoice() === 216) {
@@ -108,7 +109,7 @@ export function doHeap(stopTurncount: number) {
         // Some other choice adventure is filling the queue.
         setPropertyInt(
           "minehobo_heapNcsUntilCompost",
-          getPropertyInt("minehobo_heapNcsUntilCompost", 0) - 1
+          getPropertyInt("minehobo_heapNcsUntilCompost", 0) - 1,
         );
         if (lastChoice() === 214) state.trashcanos += 1;
       }

@@ -2,6 +2,7 @@ import {
   abort,
   ceil,
   cliExecute,
+  Effect,
   haveEffect,
   inebrietyLimit,
   myBuffedstat,
@@ -13,6 +14,7 @@ import {
   visitUrl,
 } from "kolmafia";
 import { $effect, $item, $location, $skill, $stat } from "libram";
+
 import { AdventuringManager, PrimaryGoal, usualDropItems } from "./adventure";
 import { adventureMacro, Macro } from "./combat";
 import {
@@ -57,7 +59,7 @@ const allParts = new Map<PartType, MonsterPart>([
       PartType.HOT,
       "hot",
       /pairs? of charred hobo boots/,
-      $effect`Spirit of Cayenne`
+      $effect`Spirit of Cayenne`,
     ),
   ],
   [
@@ -66,7 +68,7 @@ const allParts = new Map<PartType, MonsterPart>([
       PartType.COLD,
       "cold",
       /pairs? of frozen hobo eyes/,
-      $effect`Spirit of Peppermint`
+      $effect`Spirit of Peppermint`,
     ),
   ],
   [
@@ -75,7 +77,7 @@ const allParts = new Map<PartType, MonsterPart>([
       PartType.STENCH,
       "stench",
       /piles? of stinking hobo guts/,
-      $effect`Spirit of Garlic`
+      $effect`Spirit of Garlic`,
     ),
   ],
   [
@@ -130,7 +132,7 @@ function getParts(part: MonsterPart, desiredParts: number, stopTurncount: number
       $location`Hobopolis Town Square`,
       PrimaryGoal.NONE,
       ["familiar weight", "-0.05 ml 0 min"],
-      usualDropItems
+      usualDropItems,
     );
     manager.preAdventure();
 
@@ -202,7 +204,7 @@ export function doTownsquare(stopTurncount: number) {
         const scarehoboFactor = idx + 9;
         const partsThisRound = Math.min(
           ceil(hobosRemaining / toFloat(scarehoboFactor) - 0.001),
-          killsToNext
+          killsToNext,
         );
         for (let idx2 = 0; idx2 <= idx; idx2++) {
           plan[idx2].count += partsThisRound;

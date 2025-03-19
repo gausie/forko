@@ -1,15 +1,27 @@
-/* eslint-env node */
-import { build } from "esbuild";
+/* global console */
+import { build, context } from "esbuild";
 import babel from "esbuild-plugin-babel";
 import process from "process";
 
 const args = process.argv.slice(2);
 
-const watch = args.some((a) => a === "--watch" || a === "-w");
+const doWatch = args.some((a) => a === "--watch" || a === "-w");
 
-build({
+const watchPlugin = {
+  name: "watch",
+  setup(build) {
+    build.onEnd((result) => {
+      const date = new Date();
+      console.log(
+        `[${date.toTimeString()}] Build ${result.errors.length ? "failed" : "succeeded"}.`,
+      );
+    });
+  },
+};
+
+const config = {
   entryPoints: {
-    forko: "./src/index.ts",
+    forko: "./src/main.ts",
     "forko-combat": "./src/combat.ts",
     "forko-lib": "./src/lib.ts",
     asdonlib: "./src/asdon.ts",
@@ -29,19 +41,20 @@ build({
   bundle: true,
   minifySyntax: true,
   platform: "node",
-  target: "rhino1.7.14",
+  target: "rhino1.7.15",
   external: ["kolmafia"],
-  plugins: [babel()],
-  outdir: "KoLmafia/scripts/forko",
-  watch: watch && {
-    onRebuild(error, result) {
-      if (error) console.error("watch build failed:", error);
-      else console.log("watch build succeeded:", result);
-    },
-  },
+  plugins: [babel(), ...(doWatch ? [watchPlugin] : [])],
+  outdir: "dist/scripts/{{name}}",
   loader: { ".json": "text" },
   inject: ["./kolmafia-polyfill.js"],
   define: {
     "process.env.NODE_ENV": '"production"',
   },
-});
+};
+
+if (doWatch) {
+  const ctx = await context(config);
+  await ctx.watch();
+} else {
+  await build(config);
+}

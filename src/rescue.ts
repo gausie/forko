@@ -1,5 +1,6 @@
 import { getClanName, lastChoice, print, visitUrl } from "kolmafia";
 import { $location } from "libram";
+
 import { AdventuringManager, PrimaryGoal } from "./adventure";
 import { adventureRunOrStasis } from "./combat";
 import { extractInt, lastWasCombat, setChoice, wrapMain } from "./lib";
@@ -15,7 +16,7 @@ export function main(args: string) {
   wrapMain(args, () => {
     const initialRescues = extractInt(
       /from a C. H. U. M. cage \(([0-9]+) turn/g,
-      visitUrl("clan_raidlogs.php")
+      visitUrl("clan_raidlogs.php"),
     );
 
     setChoice(197, 2); // Turn valve - skip
@@ -28,7 +29,7 @@ export function main(args: string) {
         $location`A Maze of Sewer Tunnels`,
         PrimaryGoal.MINUS_COMBAT,
         [],
-        []
+        [],
       );
       manager.setupFreeRuns();
       manager.preAdventure();
@@ -38,7 +39,7 @@ export function main(args: string) {
 
     const finalRescues = extractInt(
       /from a C. H. U. M. cage \(([0-9]+) turn/g,
-      visitUrl("clan_raidlogs.php")
+      visitUrl("clan_raidlogs.php"),
     );
 
     if (initialRescues + 1 === finalRescues) {

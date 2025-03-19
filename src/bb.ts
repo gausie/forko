@@ -1,5 +1,6 @@
 import { floor, print, visitUrl } from "kolmafia";
 import { $location } from "libram";
+
 import { AdventuringManager, PrimaryGoal, usualDropItems } from "./adventure";
 import { adventureMacroAuto, Macro } from "./combat";
 import { extractInt, getImageBb, mustStop, printLines, setChoice, stopAt, wrapMain } from "./lib";
@@ -76,7 +77,7 @@ export function doBb(stopTurncount: number) {
       $location`Burnbarrel Blvd.`,
       PrimaryGoal.MINUS_COMBAT,
       [],
-      usualDropItems
+      usualDropItems,
     );
     manager.preAdventure();
     adventureMacroAuto($location`Burnbarrel Blvd.`, Macro.stasis().kill());
@@ -85,7 +86,7 @@ export function doBb(stopTurncount: number) {
     printLines(
       `Image: ${state.image}`,
       `Tires: ${state.tiresCurrent} current, ${state.tiresTotal} total.`,
-      `Estimated progress: ${state.estimatedProgress}`
+      `Estimated progress: ${state.estimatedProgress}`,
     );
   }
   if (getImageBb() >= 10) {

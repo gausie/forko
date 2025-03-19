@@ -1,5 +1,6 @@
 import { lastChoice, print, visitUrl } from "kolmafia";
 import { $location } from "libram";
+
 import { AdventuringManager, PrimaryGoal, usualDropItems } from "./adventure";
 import { adventureMacroAuto, Macro } from "./combat";
 import {
@@ -70,7 +71,7 @@ export function doAhbg(stopTurncount: number) {
       $location`The Ancient Hobo Burial Ground`,
       primaryGoal,
       auxiliaryGoals,
-      usualDropItems
+      usualDropItems,
     );
     manager.preAdventure();
     adventureMacroAuto($location`The Ancient Hobo Burial Ground`, Macro.stasis().kill());
@@ -86,7 +87,7 @@ export function doAhbg(stopTurncount: number) {
       } else if (lastChoice() !== 220) {
         setPropertyInt(
           "minehobo_ahbgNcsUntilFlowers",
-          getPropertyInt("minehobo_ahbgNcsUntilFlowers", 0) - 1
+          getPropertyInt("minehobo_ahbgNcsUntilFlowers", 0) - 1,
         );
       } else if (lastChoice() === 221) {
         state.watched += 1;
@@ -101,7 +102,7 @@ export function doAhbg(stopTurncount: number) {
       `Flimflams: ${state.flimflams}`,
       `Chillier Night: ${state.watched + state.dances}`,
       `My dances: ${state.dances}`,
-      `Until flowers: ${getPropertyInt("minehobo_ahbgNcsUntilFlowers")}`
+      `Until flowers: ${getPropertyInt("minehobo_ahbgNcsUntilFlowers")}`,
     );
   }
 

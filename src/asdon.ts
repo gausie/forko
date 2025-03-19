@@ -3,6 +3,7 @@ import {
   getFuel,
   historicalPrice,
   isNpcItem,
+  Item,
   mallPrice,
   retrieveItem,
   toInt,
@@ -54,7 +55,7 @@ function getBestFuel(targetUnits: number) {
 
 function insertFuel(it: Item, quantity = 1) {
   const result = visitUrl(
-    `campground.php?action=fuelconvertor&pwd&qty=${quantity}&iid=${toInt(it)}&go=Convert%21`
+    `campground.php?action=fuelconvertor&pwd&qty=${quantity}&iid=${toInt(it)}&go=Convert%21`,
   );
   return result.includes("The display updates with a");
 }

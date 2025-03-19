@@ -2,6 +2,7 @@ import {
   availableAmount,
   cliExecute,
   eat,
+  Effect,
   effectModifier,
   getCampground,
   getClanName,
@@ -10,7 +11,7 @@ import {
   haveSkill,
   hpCost,
   inebrietyLimit,
-  itemAmount,
+  Item,
   mallPrice,
   maximize,
   mpCost,
@@ -29,6 +30,7 @@ import {
   putStash,
   restoreHp,
   retrieveItem,
+  Skill,
   stashAmount,
   takeStash,
   toEffect,
@@ -49,7 +51,7 @@ import {
 } from "./lib";
 import { setClan } from "./wl";
 
-class MoodCastingPlan {
+export class MoodCastingPlan {
   // Tuple of [skill, desiredTurns]
   planElements: [Skill, number][] = [];
 
@@ -71,21 +73,21 @@ class MoodCastingPlan {
       tryEnsureSkill(skill, desiredTurns);
     }
 
-    const mpSkills = this.planElements.filter(([skill]) => mpCost(skill));
+    // const mpSkills = this.planElements.filter(([skill]) => mpCost(skill));
 
-    let totalMpAvailable = myMp() + Math.min(999, myMaxmp()) * sausagesAvailable();
-    if (getProperty("stashClan") !== "" || itemAmount($item`Platinum Yendorian Express Card`) > 0) {
-      totalMpAvailable += Math.max(myMaxmp() - 100, 0);
-    }
+    // let totalMpAvailable = myMp() + Math.min(999, myMaxmp()) * sausagesAvailable();
+    // if (getProperty("stashClan") !== "" || itemAmount($item`Platinum Yendorian Express Card`) > 0) {
+    //   totalMpAvailable += Math.max(myMaxmp() - 100, 0);
+    // }
 
-    mpSkills.sort(
-      ([skillA], [skillB]) => haveEffect(toEffect(skillA)) - haveEffect(toEffect(skillB))
-    );
-    for (const [index, [skill, desiredTurns]] of mpSkills.slice(0, -1).entries()) {
-      const [nextSkill, nextDesiredTurns] = mpSkills[index + 1];
-      // const incrementalTurns = Math.min(haveEffect(toEffect(nextSkill), desiredTurns) - haveEffect(toEffect)
-      // totalMpAvailable -= (desired)
-    }
+    // mpSkills.sort(
+    //   ([skillA], [skillB]) => haveEffect(toEffect(skillA)) - haveEffect(toEffect(skillB))
+    // );
+    // for (const [index, [skill, desiredTurns]] of mpSkills.slice(0, -1).entries()) {
+    //   const [nextSkill, nextDesiredTurns] = mpSkills[index + 1];
+    //   const incrementalTurns = Math.min(haveEffect(toEffect(nextSkill), desiredTurns) - haveEffect(toEffect)
+    //   totalMpAvailable -= (desired)
+    // }
 
     cliExecute("outfit checkpoint");
   }
@@ -138,7 +140,7 @@ export function tryEnsureEffect(ef: Effect, turns = 1) {
 export function sausagesAvailable() {
   return Math.min(
     getPropertyInt("_sausagesEaten"),
-    availableAmount($item`magical sausage`) + availableAmount($item`magical sausage casing`)
+    availableAmount($item`magical sausage`) + availableAmount($item`magical sausage casing`),
   );
 }
 
@@ -153,7 +155,7 @@ export function trySausageMp() {
 
 function tryUsePyec() {
   const pyec = $item`Platinum Yendorian Express Card`;
-  const stashClan = get<string>("stashClan") || null;
+  const stashClan = get("stashClan", "") || null;
   if (
     (availableAmount($item`Platinum Yendorian Express Card`) > 0 || stashClan !== null) &&
     !getPropertyBoolean("expressCardUsed")
@@ -213,7 +215,7 @@ export function tryEnsurePotion(
   item: Item,
   turns = 1,
   maxPricePerTurn = 100,
-  actualItem: Item | null = null
+  actualItem: Item | null = null,
 ) {
   // Actual item is for when we might buy the ingredients rather than the potion itself.
   turns = Math.round(clamp(turns, 0, myAdventures() * 1.1 + 5));
@@ -231,7 +233,7 @@ export function tryEnsurePotion(
     const quantityAcquired = getItem(
       uses - (actualItem !== null ? availableAmount(actualItem) : 0),
       item,
-      maxPricePerTurn * turnsPerUse
+      maxPricePerTurn * turnsPerUse,
     );
     if (actualItem !== null)
       retrieveItem(quantityAcquired + availableAmount(actualItem), actualItem);
@@ -277,7 +279,7 @@ export function drive(effect: Effect, maxTurns: number) {
 export function moodBaseline(maxTurns: number) {
   // Stats.
   tryEnsureSkill($skill`Get Big`, maxTurns);
-  tryEnsurePotion($item`Ben-Gal™ balm`, maxTurns);
+  tryEnsurePotion($item`Ben-Gal™ Balm`, maxTurns);
   if (myLevel() < 16) {
     tryEnsureSong($skill`Stevedave's Shanty of Superiority`, maxTurns);
     tryEnsureTriviaMaster(Math.min(maxTurns, 200 * (16 - myLevel())));
@@ -308,7 +310,7 @@ export function moodBaseline(maxTurns: number) {
 export function moodMinusCombat(
   maxTurnsBaseline: number,
   maxTurnsMinusCombat: number,
-  maxPricePerTurn = 100
+  maxPricePerTurn = 100,
 ) {
   moodBaseline(maxTurnsBaseline);
 
@@ -321,17 +323,17 @@ export function moodMinusCombat(
     cheapest(...$items`snow cleats, snow berries`),
     maxTurnsMinusCombat,
     maxPricePerTurn,
-    $item`snow cleats`
+    $item`snow cleats`,
   );
   tryEnsurePotion(
     cheapest(...$items`chunk of rock salt, deodorant`),
     maxTurnsMinusCombat,
-    maxPricePerTurn
+    maxPricePerTurn,
   );
   tryEnsurePotion(
-    $item`Daily Affirmation: Be Superficially Interested`,
+    $item`Daily Affirmation: Be Superficially interested`,
     maxTurnsMinusCombat,
-    maxPricePerTurn
+    maxPricePerTurn,
   );
   tryEnsurePotion($item`shoe gum`, maxTurnsMinusCombat, maxPricePerTurn);
   tryEnsurePotion($item`patent invisibility tonic`, maxTurnsMinusCombat, 3 * maxPricePerTurn);
@@ -347,7 +349,7 @@ export function moodMinusCombat(
     cliExecute("outfit checkpoint");
   }
 
-  if (haveEffect($effect`Become Intensely Interested`) > 0)
+  if (haveEffect($effect`Become Intensely interested`) > 0)
     cliExecute("toggle Become Intensely Interested");
   for (const effectName of Object.keys(myEffects())) {
     const effect = Effect.get(effectName);
@@ -362,7 +364,7 @@ export function moodMinusCombat(
 export function moodPlusCombat(
   maxTurnsBaseline: number,
   maxTurnsPlusCombat: number,
-  maxPricePerTurn = 100
+  maxPricePerTurn = 100,
 ) {
   moodBaseline(maxTurnsBaseline);
 
@@ -374,12 +376,12 @@ export function moodPlusCombat(
   tryEnsurePotion(
     cheapest(...$items`reodorant, handful of pine needles`),
     maxTurnsPlusCombat,
-    maxPricePerTurn
+    maxPricePerTurn,
   );
   tryEnsurePotion($item`patent aggression tonic`, maxTurnsPlusCombat, 3 * maxPricePerTurn);
   tryEnsurePotion($item`lion musk`, maxTurnsPlusCombat, 3 * maxPricePerTurn);
 
-  if (haveEffect($effect`Become Superficially Interested`) > 0)
+  if (haveEffect($effect`Become Superficially interested`) > 0)
     cliExecute("toggle Become Superficially Interested");
   for (const effectName of Object.keys(myEffects())) {
     const effect = Effect.get(effectName);

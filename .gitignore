@@ -1,4 +1,9 @@
-/node_modules
-/KoLmafia/scripts
-.DS_Store
-/profile.json
+node_modules
+
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions

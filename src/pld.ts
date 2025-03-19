@@ -1,5 +1,6 @@
 import { lastChoice, print, setAutoAttack, visitUrl } from "kolmafia";
 import { $location } from "libram";
+
 import { AdventuringManager, PrimaryGoal, usualDropItems } from "./adventure";
 import { adventureMacroAuto, adventureRunOrStasis, Macro } from "./combat";
 import { getState as getEeState } from "./ee";
@@ -60,7 +61,7 @@ export function doPld(stopTurncount: number) {
       $location`The Purple Light District`,
       PrimaryGoal.PLUS_COMBAT,
       [],
-      usualDropItems
+      usualDropItems,
     );
     if (tryFreeRun) manager.setupFreeRuns();
     manager.preAdventure();
@@ -75,7 +76,7 @@ export function doPld(stopTurncount: number) {
       `Diverts: ${diverts}`,
       `Flimflams: ${state.flimflams}`,
       `Fights: ${state.fights}`,
-      `Image (approx): ${getImagePld()}`
+      `Image (approx): ${getImagePld()}`,
     );
 
     if (!lastWasCombat() && lastChoice() === 205) {

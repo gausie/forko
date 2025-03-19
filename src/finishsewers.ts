@@ -1,5 +1,6 @@
 import { getClanName, print } from "kolmafia";
 import { $location } from "libram";
+
 import { AdventuringManager, PrimaryGoal } from "./adventure";
 import { adventureRunOrStasis } from "./combat";
 import { setChoice, wrapMain } from "./lib";
@@ -27,7 +28,7 @@ export function main(args: string | undefined) {
         $location`A Maze of Sewer Tunnels`,
         PrimaryGoal.MINUS_COMBAT,
         [],
-        []
+        [],
       );
       manager.setupFreeRuns();
       manager.preAdventure();

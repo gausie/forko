@@ -1,4 +1,5 @@
 import {
+  abort,
   availableAmount,
   cliExecute,
   equip,
@@ -7,6 +8,7 @@ import {
   getClanName,
   getCounters,
   handlingChoice,
+  Item,
   itemAmount,
   mallPrice,
   myAscensions,
@@ -39,6 +41,7 @@ import {
   TunnelOfLove,
   Witchess,
 } from "libram";
+
 import { fillAsdonMartinTo } from "./asdon";
 import { adventureMacro, Macro, withMacro } from "./combat";
 import { getItem, setChoice } from "./lib";
@@ -47,7 +50,7 @@ import { setClan } from "./wl";
 export function withStash<T>(itemsToTake: Item[], action: () => T) {
   if (itemsToTake.every((item) => availableAmount(item) > 0)) return action();
 
-  const stashClanName = get<string>("stashClan");
+  const stashClanName = get("stashClan", "");
   if (stashClanName === "") return null;
 
   const startingClanName = getClanName();
@@ -67,9 +70,9 @@ export function withStash<T>(itemsToTake: Item[], action: () => T) {
     return action();
   } finally {
     for (const [item, quantityTaken] of quantitiesTaken.entries()) {
-      // eslint-disable-next-line no-unsafe-finally
-      if (getClanName() !== stashClanName)
-        throw "Wrong clan! Don't put stuff back in the stash here!";
+      if (getClanName() !== stashClanName) {
+        abort("Wrong clan! Don't put stuff back in the stash here!");
+      }
       retrieveItem(quantityTaken, item);
       putStash(quantityTaken, item);
       print(`Returned ${quantityTaken} ${item.plural} to stash.`, "blue");
@@ -105,7 +108,7 @@ if (!TunnelOfLove.isUsed()) {
     ? "Open Heart Surgery"
     : "Wandering Eye Surgery";
   withMacro(Macro.tentacle().spellKill(), () =>
-    TunnelOfLove.fightAll("LOV Epaulettes", effect, "LOV Extraterrestrial Chocolate")
+    TunnelOfLove.fightAll("LOV Epaulettes", effect, "LOV Extraterrestrial Chocolate"),
   );
 
   if (handlingChoice()) throw "Did not get all the way through LOV.";
@@ -133,7 +136,7 @@ if (!get("_photocopyUsed")) {
       .externalIf(!get("_iceSculptureUsed"), Macro.item("unfinished ice sculpture"))
       .externalIf(!get("_cameraUsed"), Macro.item("4-d camera"))
       .spellKill(),
-    () => use($item`photocopied monster`)
+    () => use($item`photocopied monster`),
   );
 }
 
@@ -224,10 +227,10 @@ if (["step3", "finished"].includes(get("questL11Ron"))) {
           get("questL11Ron") === "step3",
           Macro.if_(
             "monstername red butler || monstername man with the red buttons || monstername red skeleton",
-            Macro.item("Louder Than Bomb")
-          )
+            Macro.item("Louder Than Bomb"),
+          ),
         )
-        .item("glark cable")
+        .item("glark cable"),
     );
   }
 }
@@ -254,7 +257,7 @@ while (!get("_gingerbreadMobHitUsed") || get("_shatteringPunchUsed") < 3) {
       .trySkill($skill`Gingerbread Mob Hit`)
       .skill($skill`Shattering Punch`)
       .abort(),
-    () => use($item`drum machine`)
+    () => use($item`drum machine`),
   );
 }
 
@@ -271,7 +274,7 @@ if (!get("_firedJokestersGun") || get("_chestXRayUsed") < 3) {
           .trySkill($skill`Fire the Jokester's Gun`)
           .skill($skill`Chest X-Ray`)
           .abort(),
-        () => use($item`drum machine`)
+        () => use($item`drum machine`),
       );
     }
   } finally {
@@ -288,7 +291,7 @@ if (get("_powderedMadnessUses") < 5 && mallPrice($item`powdered madness`) < 4000
       Macro.tentacle()
         .item($item`powdered madness`)
         .abort(),
-      () => use($item`drum machine`)
+      () => use($item`drum machine`),
     );
   }
 }
@@ -296,7 +299,9 @@ if (get("_powderedMadnessUses") < 5 && mallPrice($item`powdered madness`) < 4000
 // 25	1	0	0	Asdon Martin: Missile Launcher	combat skill	must have Asdon Martin installed in your workshed; instantly forces all items to drop; costs 100 "fuel"
 if (getCampground()["Asdon Martin keyfob"] !== undefined && !get("_missileLauncherUsed")) {
   fillAsdonMartinTo(100);
-  withMacro(Macro.tentacle().skill($skill`Missile Launcher`), () => use($item`drum machine`));
+  withMacro(Macro.tentacle().skill($skill`Asdon Martin: Missile Launcher`), () =>
+    use($item`drum machine`),
+  );
 }
 
 // 21	10	0	0	Partygoers from The Neverending Party	must have used a Neverending Party invitation envelope.
@@ -324,7 +329,7 @@ if (
         .if_("monstername government agent", Macro.skill("Macrometeorite"))
         .if_("!monstername piranha plant", Macro.abort())
         .trySkill("Portscan")
-        .spellKill()
+        .spellKill(),
     );
   }
 }

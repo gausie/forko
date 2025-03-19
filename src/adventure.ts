@@ -1,19 +1,9 @@
 import {
-  $effect,
-  $familiar,
-  $familiars,
-  $item,
-  $items,
-  $location,
-  $locations,
-  $skill,
-  get,
-} from "libram";
-import {
   adv1,
   availableAmount,
   cliExecute,
   equippedAmount,
+  Familiar,
   getCampground,
   getCounters,
   getFuel,
@@ -22,11 +12,12 @@ import {
   haveFamiliar,
   haveSkill,
   inebrietyLimit,
+  Item,
   itemAmount,
+  Location,
   mallPrice,
   maximize,
   mpCost,
-  myAdventures,
   myAscensions,
   myBasestat,
   myFamiliar,
@@ -40,17 +31,31 @@ import {
   putCloset,
   restoreHp,
   restoreMp,
-  retrieveItem,
   reverseNumberology,
   setLocation,
   setProperty,
   shopAmount,
+  Skill,
+  Stat,
   takeCloset,
   toInt,
   totalTurnsPlayed,
   useFamiliar,
   visitUrl,
 } from "kolmafia";
+import {
+  $effect,
+  $familiar,
+  $familiars,
+  $item,
+  $items,
+  $location,
+  $locations,
+  $skill,
+  get,
+} from "libram";
+
+import { fillAsdonMartinTo } from "./asdon";
 import {
   clamp,
   getImagePld,
@@ -63,7 +68,6 @@ import {
   setPropertyInt,
   turboMode,
 } from "./lib";
-import { fillAsdonMartinTo } from "./asdon";
 import { tryEnsureSong } from "./mood";
 
 function has(itemOrSkill: Item | Skill) {
@@ -84,7 +88,7 @@ export function maximizeCached(objective: string) {
   const stats = Stat.get(["Muscle", "Mysticality", "Moxie"]).map((stat) => myBasestat(stat));
   const checkMod = turboMode() ? 25 : 10;
   const statsChanged = stats.some(
-    (newStat, i) => newStat > oldStats[i] && oldStats[i] < 300 && newStat % checkMod === 0
+    (newStat, i) => newStat > oldStats[i] && oldStats[i] < 300 && newStat % checkMod === 0,
   );
 
   const oldFamiliar = getPropertyString("minehobo_lastFamiliar", "");
@@ -131,7 +135,7 @@ function averagePrice(items: Item[]) {
 
 function argmax<T>(values: [T, number][]) {
   return values.reduce(([minValue, minScore], [value, score]) =>
-    score > minScore ? [value, score] : [minValue, minScore]
+    score > minScore ? [value, score] : [minValue, minScore],
   )[0];
 }
 
@@ -140,7 +144,7 @@ function feedToMimic(amount: number, candy: Item) {
   visitUrl(`familiarbinger.php?action=binge&qty=${amount}&whichitem=${toInt(candy)}`);
 }
 
-const mimicFeedCandy = $items`Cold Hots candy, Daffy Taffy, Mr. Mediocrebar, Senior Mints, Wint-o-Fresh Mint`;
+const mimicFeedCandy = $items`Cold Hots candy, Daffy Taffy, Mr. Mediocrebar, Senior Mints, Wint-O-Fresh mint`;
 function maybeFeedMimic() {
   if (
     getPropertyInt("minehobo_lastMimicFeedAscension", 0) < myAscensions() &&
@@ -201,7 +205,7 @@ export function renderObjective(
   primaryGoal: PrimaryGoal,
   auxiliaryGoals: string[],
   forceEquip: Item[] = [],
-  banned: Item[] = []
+  banned: Item[] = [],
 ) {
   return [
     ...(primaryGoalToMaximizer.get(primaryGoal) || []),
@@ -239,7 +243,7 @@ export class AdventuringManager {
     primaryGoal: PrimaryGoal,
     auxiliaryGoals: string[],
     forceEquip: Item[] = [],
-    banned: Item[] = []
+    banned: Item[] = [],
   ) {
     if (myInebriety() > inebrietyLimit()) {
       forceEquip = [...exclude(forceEquip, [$item`hobo code binder`]), $item`Drunkula's wineglass`];
@@ -311,8 +315,8 @@ export class AdventuringManager {
           PrimaryGoal.NONE,
           ["familiar weight", ...this.auxiliaryGoals],
           exclude(this.forceEquip, fightOnlyItems),
-          this.banned
-        )
+          this.banned,
+        ),
       );
       if (
         getPropertyInt("_banderRunaways") < Math.floor(myFamiliarWeight() / 5) &&
@@ -476,8 +480,8 @@ export class AdventuringManager {
         this.primaryGoal,
         this.auxiliaryGoals,
         this.forceEquipWithFamiliar(),
-        this.banned
-      )
+        this.banned,
+      ),
     );
 
     sausageMp(100);
@@ -493,8 +497,8 @@ export class AdventuringManager {
         this.primaryGoal,
         this.auxiliaryGoals,
         this.forceEquipWithFamiliar(),
-        this.banned
-      )
+        this.banned,
+      ),
     );
 
     if (equippedAmount($item`lucky gold ring`) > 0) {

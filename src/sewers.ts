@@ -8,6 +8,7 @@ import {
   visitUrl,
 } from "kolmafia";
 import { $item, $location } from "libram";
+
 import { AdventuringManager, PrimaryGoal, usualDropItems } from "./adventure";
 import { adventureRunOrStasis } from "./combat";
 import {
@@ -27,7 +28,7 @@ export const getSewersState = memoizeTurncount(() => {
   const valves = extractInt(
     /lowered the water level( [0-9]+ times?)? \(([0-9]+) turn/g,
     logText,
-    2
+    2,
   );
   return { grates, valves };
 });
@@ -79,7 +80,7 @@ export function doSewers(stopTurncount: number) {
         $location`A Maze of Sewer Tunnels`,
         PrimaryGoal.MINUS_COMBAT,
         [],
-        equips
+        equips,
       );
       manager.setupFreeRuns();
       manager.preAdventure();

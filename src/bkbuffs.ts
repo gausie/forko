@@ -1,13 +1,16 @@
 import {
   chew,
+  Class,
   cliExecute,
   drink,
   eat,
+  Effect,
   effectModifier,
   fullnessLimit,
   haveEffect,
   historicalPrice,
   inebrietyLimit,
+  Item,
   itemAmount,
   logprint,
   maximize,
@@ -18,6 +21,7 @@ import {
   numericModifier,
   print,
   printHtml,
+  Skill,
   spleenLimit,
   toEffect,
   use,
@@ -25,6 +29,7 @@ import {
   useSkill,
 } from "kolmafia";
 import { $class, $effect, $effects, $item, $items, $skill, $skills, get, have } from "libram";
+
 import { clamp, getItem } from "./lib";
 import { drive } from "./mood";
 
@@ -210,7 +215,7 @@ class Option {
   constructor(
     effect: Effect,
     source: Item | Skill | string | (() => void) | null = null,
-    cost: number | null = null
+    cost: number | null = null,
   ) {
     this.effect = effect;
     this.source = source ?? effect.default;
@@ -287,9 +292,9 @@ function addOption(option: Option) {
 
 addOption(new Option($effect`Synthesis: Collection`, "synthesize collection", 13000));
 addOption(
-  new Option($effect`Driving Observantly`, "asdonlib 37; asdonmartin drive observantly", 500)
+  new Option($effect`Driving Observantly`, "asdonlib 37; asdonmartin drive observantly", 500),
 );
-addOption(new Option($effect`There's No N In Love`));
+addOption(new Option($effect`There's No N in Love`));
 addOption(new Option($effect`A Girl Named Sue`));
 addOption(new Option($effect`Do I Know You From Somewhere?`));
 addOption(new Option($effect`Puzzle Champ`));
@@ -302,18 +307,18 @@ addOption(
   new Option(
     $effect`Extra Sensory Perception`,
     "# gong roach itemdrop # 3 turns",
-    historicalPrice($item`llama lama gong`)
-  )
+    historicalPrice($item`llama lama gong`),
+  ),
 );
 // 0-1 turn
 addOption(
   new Option(
     $effect`Snow Fortified`,
     "# use snow fort; camp rest # 0-1 turns",
-    historicalPrice($item`snow fort`)
-  )
+    historicalPrice($item`snow fort`),
+  ),
 );
-addOption(new Option($effect`ChibiChanged&trade;`, "# ChibiBuddy buff"));
+addOption(new Option($effect`ChibiChanged™`, "# ChibiBuddy buff"));
 addOption(new Option($effect`Bat-Adjacent Form`, "# cast Bat Form in combat"));
 // 1 turn; open Spookyraven first
 addOption(new Option($effect`[1609]Dancin' Fool`, "# Louvre It or Leave It"));
@@ -322,16 +327,16 @@ addOption(
   new Option(
     $effect`Doing The Hustle`,
     "# Discotheque with 2 Disco Style",
-    historicalPrice($item`One-day ticket to That 70s Volcano`) * 0.5
-  )
+    historicalPrice($item`one-day ticket to That 70s Volcano`) * 0.5,
+  ),
 );
 // 0 turns (XO pocket)
 addOption(
   new Option(
     $effect`Tiffany's Breakfast`,
     "# Jar of Psychoses (artist)",
-    historicalPrice($item`Jar of psychoses (The Pretentious Artist)`)
-  )
+    historicalPrice($item`jar of psychoses (The Pretentious Artist)`),
+  ),
 );
 // 0 turns (do day 1)
 addOption(new Option($effect`Wandering Eye Surgery`, "# Get from LOV Emergency Room"));
@@ -342,30 +347,30 @@ addOption(
   new Option(
     $effect`High-Falutin'`,
     "# Grab a free drink from Gingerbread Gallery",
-    historicalPrice($item`counterfeit city`)
-  )
+    historicalPrice($item`counterfeit city`),
+  ),
 );
 // RO stuff
 addOption(
   new Option(
     $effect`Octolus Gift`,
     "# Equip octolus-skin cloak at RO",
-    historicalPrice($item`Octolus-skin cloak`)
-  )
+    historicalPrice($item`octolus-skin cloak`),
+  ),
 );
 addOption(
   new Option(
     $effect`Pajama Party`,
     "# Equip ratskin pajama pants at RO",
-    historicalPrice($item`Ratskin pajama pants`)
-  )
+    historicalPrice($item`ratskin pajama pants`),
+  ),
 );
 addOption(
   new Option(
     $effect`Spirit of Galactic Unity`,
-    "# Equip Spacegate scientist insignia at RO",
-    historicalPrice($item`Spacegate scientist insignia`)
-  )
+    "# Equip Spacegate scientist's insignia at RO",
+    historicalPrice($item`Spacegate scientist's insignia`),
+  ),
 );
 addOption(new Option($effect`familiar.enq`, "# terminal enquiry familiar.enq"));
 // addOption(new Option($effect`Fortune of the Wheel`, $item`Gift card`.historical_price() * 70, 'Get X - Wheel of Fortune from DoEC'));
@@ -404,7 +409,7 @@ selectedOptions.sort(
   (x, y) =>
     x.efficiency() * 10000 -
     approxBonus(x.effect) -
-    (y.efficiency() * 10000 - approxBonus(y.effect))
+    (y.efficiency() * 10000 - approxBonus(y.effect)),
 );
 
 const passives = Skill.all().filter(
@@ -412,10 +417,10 @@ const passives = Skill.all().filter(
     skill.passive &&
     approxBonus(skill) >= 0.001 &&
     normalClass(skill.class) &&
-    !impossiblePassives.has(skill)
+    !impossiblePassives.has(skill),
 );
 
-const rolloverEquipment: Item[] = $items`octolus-skin cloak, ratskin pajama pants, Spacegate scientist insignia`;
+const rolloverEquipment: Item[] = $items`octolus-skin cloak, ratskin pajama pants, Spacegate scientist's insignia`;
 
 class Table {
   rows: (object | string | number)[][] = [];
@@ -427,7 +432,7 @@ class Table {
 
   render() {
     const rowsHtml = this.rows.map(
-      (cells) => `<tr><td>${cells.map((cell) => cell.toString()).join("</td><td>")}</td></tr>`
+      (cells) => `<tr><td>${cells.map((cell) => cell.toString()).join("</td><td>")}</td></tr>`,
     );
     return `<table border="1"><tbody>${rowsHtml.join("")}</table></tbody>`;
   }
@@ -444,7 +449,7 @@ export function main(argsString = "") {
   } else if (args.includes("rollover")) {
     maximize(
       `adventures, ${rolloverEquipment.map((equip) => `equip ${equip.name}`).join(", ")}`,
-      false
+      false,
     );
   } else if (args.includes("reminder") || args.includes("reminders")) {
     for (const [effect, effectOptions] of options.entries()) {
@@ -469,7 +474,7 @@ export function main(argsString = "") {
       exactPlusItem(2 * runningItemDrop, runningFamiliarWeight).toFixed(),
       10,
       0,
-      "The Packrat"
+      "The Packrat",
     );
 
     runningItemDrop += 10;
@@ -478,7 +483,7 @@ export function main(argsString = "") {
       exactPlusItem(2 * runningItemDrop, runningFamiliarWeight).toFixed(),
       10,
       0,
-      "Spice Ghost"
+      "Spice Ghost",
     );
 
     runningItemDrop += outfitItemDrop;
@@ -488,7 +493,7 @@ export function main(argsString = "") {
       exactPlusItem(2 * runningItemDrop, runningFamiliarWeight).toFixed(),
       outfitItemDrop,
       outfitFamiliarWeight,
-      "Outfit"
+      "Outfit",
     );
 
     for (const passive of passives) {
@@ -499,7 +504,7 @@ export function main(argsString = "") {
         exactPlusItem(2 * runningItemDrop, runningFamiliarWeight).toFixed(),
         itemDrop(passive),
         familiarWeight(passive),
-        passive
+        passive,
       );
     }
 
@@ -511,7 +516,7 @@ export function main(argsString = "") {
         exactPlusItem(2 * runningItemDrop, runningFamiliarWeight).toFixed(),
         itemDrop(option.effect),
         familiarWeight(option.effect),
-        option.effect.name
+        option.effect.name,
       );
     }
 
@@ -549,7 +554,7 @@ export function main(argsString = "") {
 
     // Stock up on pocket wishes.
     const wishCount = selectedOptions.filter(
-      (o) => !have(o.effect) && typeof o.source === "string" && o.source.startsWith("genie effect")
+      (o) => !have(o.effect) && typeof o.source === "string" && o.source.startsWith("genie effect"),
     ).length;
     const wishesToBuy = wishCount - itemAmount($item`pocket wish`);
     if (wishesToBuy > 0 && !userConfirm(`About to buy ${wishesToBuy} pocket wishes. OK?`))

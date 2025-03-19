@@ -10,6 +10,7 @@ import {
   visitUrl,
 } from "kolmafia";
 import { $location } from "libram";
+
 import { AdventuringManager, PrimaryGoal, usualDropItems } from "./adventure";
 import { adventureMacroAuto, Macro } from "./combat";
 import {
@@ -146,7 +147,7 @@ export function doEe(stopTurncount: number, pass: number) {
         $location`Exposure Esplanade`,
         needMinusCombat ? PrimaryGoal.MINUS_COMBAT : PrimaryGoal.NONE,
         needMinusCombat ? [] : ["familiar weight"],
-        usualDropItems
+        usualDropItems,
       );
       manager.preAdventure();
       adventureMacroAuto($location`Exposure Esplanade`, Macro.stasis().kill());
